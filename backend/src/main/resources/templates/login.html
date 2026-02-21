@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f7fa; margin: 0; display: grid; place-items: center; min-height: 100vh; }
+        .card { width: 360px; background: white; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,.08); padding: 24px; }
+        h1 { margin: 0 0 16px; font-size: 22px; }
+        label { display: block; margin-bottom: 6px; font-size: 14px; }
+        input { width: 100%; box-sizing: border-box; padding: 10px; margin-bottom: 14px; border: 1px solid #ccd3db; border-radius: 8px; }
+        button { width: 100%; padding: 10px; border: none; background: #0e7490; color: white; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .error { color: #b91c1c; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>Account Login</h1>
+    <div class="error" th:if="${param.error}">Invalid username or password.</div>
+    <form method="post" action="/openid/login">
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" required />
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" required />
+
+        <button type="submit">Sign In</button>
+    </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    driver-class-name: org.sqlite.JDBC
+    url: jdbc:sqlite:${AUTH_DB_PATH:./auth.db}
+  sql:
+    init:
+      mode: always
+  cache:
+    type: caffeine
+  thymeleaf:
+    cache: false
+
+auth:
+  issuer: ${AUTH_ISSUER:http://localhost:8080}
+  token:
+    access-ttl: PT15M
+    refresh-ttl: P30D
+    rotate-refresh-token: true
+  admin:
+    username: ${AUTH_ADMIN_USERNAME:admin}
+    password-bcrypt: ${AUTH_ADMIN_PASSWORD_BCRYPT:$2a$10$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG}
+  app:
+    username: ${AUTH_APP_USERNAME:app}
+    master-password-bcrypt: ${AUTH_APP_MASTER_PASSWORD_BCRYPT:$2a$10$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG}
+    access-ttl: ${AUTH_APP_ACCESS_TTL:PT10M}
+    max-access-ttl: ${AUTH_APP_MAX_ACCESS_TTL:PT12H}
+    rotate-device-token: ${AUTH_APP_ROTATE_DEVICE_TOKEN:true}
+    internal-webhook-secret: ${AUTH_APP_INTERNAL_WEBHOOK_SECRET:change-me}
+  bootstrap-user:
+    username: ${AUTH_BOOTSTRAP_USER:user}
+    password-bcrypt: ${AUTH_BOOTSTRAP_PASSWORD_BCRYPT:$2a$10$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG}
+    display-name: ${AUTH_BOOTSTRAP_DISPLAY:Default User}
+
+logging:
+  level:
+    org.springframework.security: INFO
