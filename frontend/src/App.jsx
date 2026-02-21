@@ -37,6 +37,21 @@ function formatTime(value) {
   return date.toLocaleString();
 }
 
+async function copyToClipboard(text) {
+  if (!text) return false;
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function tokenPreview(token) {
+  if (!token) return '-';
+  return token.length > 20 ? `${token.slice(0, 20)}...` : token;
+}
+
 function useAuthState() {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState(null);
@@ -126,6 +141,7 @@ function ProtectedLayout({ session, onLogout }) {
         <Link to="/clients" style={{ opacity: location.pathname.includes('/clients') ? 1 : 0.65 }}>Clients</Link>
         <Link to="/inbox" style={{ opacity: location.pathname.includes('/inbox') ? 1 : 0.65 }}>Inbox</Link>
         <Link to="/security" style={{ opacity: location.pathname.includes('/security') ? 1 : 0.65 }}>Security</Link>
+        <Link to="/tools" style={{ opacity: location.pathname.includes('/tools') ? 1 : 0.65 }}>Tools</Link>
       </div>
 
       <div style={{ marginTop: 16 }}>
@@ -134,6 +150,7 @@ function ProtectedLayout({ session, onLogout }) {
           <Route path="/clients" element={<ClientsPage />} />
           <Route path="/inbox" element={<InboxPage />} />
           <Route path="/security" element={<SecurityPage />} />
+          <Route path="/tools" element={<ToolsPage />} />
           <Route path="*" element={<Navigate to="/users" replace />} />
         </Routes>
       </div>
@@ -591,6 +608,7 @@ function SecurityPage() {
   const [success, setSuccess] = useState('');
 
   const [jwks, setJwks] = useState(null);
+  const [generatedPublicKey, setGeneratedPublicKey] = useState('');
   const [issueForm, setIssueForm] = useState({
     masterPassword: 'password',
     deviceName: 'Admin Console Device',
@@ -612,11 +630,9 @@ function SecurityPage() {
   });
 
   const copyText = async (text) => {
-    if (!text) return;
-    try {
-      await navigator.clipboard.writeText(text);
+    if (await copyToClipboard(text)) {
       setSuccess('Copied to clipboard');
-    } catch {
+    } else {
       setError('Failed to copy to clipboard');
     }
   };
@@ -722,6 +738,25 @@ function SecurityPage() {
     }
   };
 
+  const generatePublicKeyFromJwkSet = async () => {
+    setError('');
+    setSuccess('');
+    try {
+      const key = jwks?.jwks?.keys?.[0];
+      if (!key?.e || !key?.n) {
+        throw new Error('No JWK key found');
+      }
+      const result = await api('/admin/api/security/public-key/generate', {
+        method: 'POST',
+        body: JSON.stringify({ e: key.e, n: key.n })
+      });
+      setGeneratedPublicKey(result.publicKey || '');
+      setSuccess('Generated public key successfully');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <>
       <div className="card">
@@ -735,16 +770,20 @@ function SecurityPage() {
 
       <div className="card">
         <h3>JWKs</h3>
-        <div className="row">
-          <div>
-            <h4>App JWK Set</h4>
-            <pre className="json-block">{jwks ? JSON.stringify(jwks.appJwks, null, 2) : 'Loading...'}</pre>
-          </div>
-          <div>
-            <h4>OIDC JWK Set</h4>
-            <pre className="json-block">{jwks ? JSON.stringify(jwks.oidcJwks, null, 2) : 'Loading...'}</pre>
-          </div>
+        <pre className="json-block">{jwks ? JSON.stringify(jwks.jwks || {}, null, 2) : 'Loading...'}</pre>
+        <div className="inline-actions" style={{ marginTop: 12 }}>
+          <button
+            className="secondary"
+            onClick={generatePublicKeyFromJwkSet}
+            disabled={!jwks?.jwks?.keys?.[0]?.e || !jwks?.jwks?.keys?.[0]?.n}
+          >
+            Generate Public Key
+          </button>
+          {generatedPublicKey ? (
+            <button className="secondary" onClick={() => copyText(generatedPublicKey)}>Copy Public Key</button>
+          ) : null}
         </div>
+        {generatedPublicKey ? <pre className="pem-block" style={{ marginTop: 12 }}>{generatedPublicKey}</pre> : null}
       </div>
 
       <div className="card">
@@ -971,7 +1010,7 @@ function SecurityPage() {
                 <td>{item.clientId || '-'}</td>
                 <td>{formatTime(item.issuedAt)}</td>
                 <td>{formatTime(item.expiresAt)}</td>
-                <td><div className="token-cell">{item.token}</div></td>
+                <td><div className="token-cell">{tokenPreview(item.token)}</div></td>
                 <td>
                   <button className="secondary" onClick={() => copyText(item.token)}>Copy</button>
                 </td>
@@ -979,6 +1018,143 @@ function SecurityPage() {
             ))}
           </tbody>
         </table>
+      </div>
+    </>
+  );
+}
+
+function ToolsPage() {
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [bcryptPassword, setBcryptPassword] = useState('');
+  const [bcryptResult, setBcryptResult] = useState('');
+  const [jwkForm, setJwkForm] = useState({ e: 'AQAB', n: '' });
+  const [publicKeyResult, setPublicKeyResult] = useState('');
+  const [keyPairResult, setKeyPairResult] = useState(null);
+
+  const copyText = async (text) => {
+    if (await copyToClipboard(text)) {
+      setSuccess('Copied to clipboard');
+    } else {
+      setError('Failed to copy to clipboard');
+    }
+  };
+
+  const generateBcrypt = async (event) => {
+    event.preventDefault();
+    setError('');
+    setSuccess('');
+    try {
+      const result = await api('/admin/api/bcrypt/generate', {
+        method: 'POST',
+        body: JSON.stringify({ password: bcryptPassword })
+      });
+      setBcryptResult(result.bcrypt || '');
+      setSuccess('Generated bcrypt successfully');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const generatePublicKey = async (event) => {
+    event.preventDefault();
+    setError('');
+    setSuccess('');
+    try {
+      const result = await api('/admin/api/security/public-key/generate', {
+        method: 'POST',
+        body: JSON.stringify({ e: jwkForm.e, n: jwkForm.n })
+      });
+      setPublicKeyResult(result.publicKey || '');
+      setSuccess('Generated public key successfully');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const generateKeyPair = async () => {
+    setError('');
+    setSuccess('');
+    try {
+      const result = await api('/admin/api/security/key-pair/generate', {
+        method: 'POST'
+      });
+      setKeyPairResult(result);
+      setSuccess('Generated key pair successfully');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <>
+      <div className="card">
+        <div className="section-header">
+          <h3 style={{ margin: 0 }}>Security Tools</h3>
+        </div>
+        {error && <div className="error">{error}</div>}
+        {success && <div className="success">{success}</div>}
+      </div>
+
+      <div className="card">
+        <h3>Bcrypt Generator</h3>
+        <form onSubmit={generateBcrypt}>
+          <label>Password</label>
+          <input
+            type="text"
+            value={bcryptPassword}
+            onChange={(e) => setBcryptPassword(e.target.value)}
+            required
+          />
+          <button type="submit">Generate Bcrypt</button>
+        </form>
+        {bcryptResult ? (
+          <>
+            <pre className="pem-block">{bcryptResult}</pre>
+            <button className="secondary" onClick={() => copyText(bcryptResult)}>Copy Bcrypt</button>
+          </>
+        ) : null}
+      </div>
+
+      <div className="card">
+        <h3>PublicKey Generator (e+n)</h3>
+        <form onSubmit={generatePublicKey}>
+          <label>Exponent (e)</label>
+          <input
+            value={jwkForm.e}
+            onChange={(e) => setJwkForm((prev) => ({ ...prev, e: e.target.value }))}
+            required
+          />
+          <label>Modulus (n)</label>
+          <textarea
+            value={jwkForm.n}
+            onChange={(e) => setJwkForm((prev) => ({ ...prev, n: e.target.value }))}
+            rows={5}
+            required
+          />
+          <button type="submit">Generate PublicKey</button>
+        </form>
+        {publicKeyResult ? (
+          <>
+            <pre className="pem-block">{publicKeyResult}</pre>
+            <button className="secondary" onClick={() => copyText(publicKeyResult)}>Copy PublicKey</button>
+          </>
+        ) : null}
+      </div>
+
+      <div className="card">
+        <h3>Private/Public Key Pair Generator</h3>
+        <button onClick={generateKeyPair}>Generate RSA2048 Key Pair</button>
+        {keyPairResult ? (
+          <div style={{ marginTop: 12 }}>
+            <label>Public Key</label>
+            <pre className="pem-block">{keyPairResult.publicKey}</pre>
+            <button className="secondary" onClick={() => copyText(keyPairResult.publicKey)}>Copy Public Key</button>
+            <label style={{ marginTop: 12 }}>Private Key</label>
+            <pre className="pem-block">{keyPairResult.privateKey}</pre>
+            <button className="secondary" onClick={() => copyText(keyPairResult.privateKey)}>Copy Private Key</button>
+          </div>
+        ) : null}
       </div>
     </>
   );

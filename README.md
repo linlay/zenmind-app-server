@@ -15,7 +15,7 @@ docker compose up --build
 
 ## 3. 默认账号
 
-- Admin: `admin / password`
+- Admin: `admin / Admin@Auth`
 - OAuth 测试用户: `user / password`
 - App 主密码: `password`
 
@@ -270,6 +270,14 @@ rm -f "$ADMIN_COOKIE_JAR"
   - `GET /admin/api/session/me`
 - Security Utility
   - `POST /admin/api/bcrypt/generate`
+  - `GET /admin/api/security/jwks`
+  - `POST /admin/api/security/public-key/generate`
+  - `POST /admin/api/security/key-pair/generate`
+  - `POST /admin/api/security/app-tokens/issue`
+  - `POST /admin/api/security/app-tokens/refresh`
+  - `GET /admin/api/security/app-devices`
+  - `POST /admin/api/security/app-devices/{deviceId}/revoke`
+  - `GET /admin/api/security/tokens`
 - Users
   - `GET /admin/api/users`
   - `POST /admin/api/users`

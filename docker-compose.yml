@@ -1,0 +1,26 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: app-auth-backend
+    environment:
+      AUTH_DB_PATH: /data/auth.db
+      AUTH_ISSUER: ${AUTH_ISSUER:-http://localhost:8080}
+      AUTH_ADMIN_USERNAME: ${AUTH_ADMIN_USERNAME:-admin}
+      AUTH_ADMIN_PASSWORD_BCRYPT: ${AUTH_ADMIN_PASSWORD_BCRYPT:-$$2a$$10$$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG}
+      AUTH_APP_INTERNAL_WEBHOOK_SECRET: ${AUTH_APP_INTERNAL_WEBHOOK_SECRET:-change-me}
+    volumes:
+      - ./data:/data
+    ports:
+      - "${BACKEND_PORT:-11952}:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: app-auth-frontend
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "${FRONTEND_PORT:-11950}:80"

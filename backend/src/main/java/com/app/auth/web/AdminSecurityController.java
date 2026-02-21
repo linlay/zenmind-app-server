@@ -1,6 +1,5 @@
 package com.app.auth.web;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,6 +17,9 @@ import com.app.auth.web.dto.AdminAppTokenRefreshRequest;
 import com.app.auth.web.dto.AppDeviceResponse;
 import com.app.auth.web.dto.AppLoginResponse;
 import com.app.auth.web.dto.AppRefreshResponse;
+import com.app.auth.web.dto.KeyPairGenerateResponse;
+import com.app.auth.web.dto.PublicKeyGenerateRequest;
+import com.app.auth.web.dto.PublicKeyGenerateResponse;
 import com.app.auth.web.dto.TokenAuditResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -91,12 +93,18 @@ public class AdminSecurityController {
 
     @GetMapping("/jwks")
     public Map<String, Object> jwks() {
-        Map<String, Object> appJwks = jwkKeyService.publicJwksResponse();
-        Map<String, Object> oidcJwks = jwkKeyService.publicJwksResponse();
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("appJwks", appJwks);
-        payload.put("oidcJwks", oidcJwks);
-        return payload;
+        return Map.of("jwks", jwkKeyService.publicJwksResponse());
+    }
+
+    @PostMapping("/public-key/generate")
+    public PublicKeyGenerateResponse generatePublicKey(@Valid @RequestBody PublicKeyGenerateRequest request) {
+        return new PublicKeyGenerateResponse(jwkKeyService.publicKeyPemFromJwk(request.e(), request.n()));
+    }
+
+    @PostMapping("/key-pair/generate")
+    public KeyPairGenerateResponse generateKeyPair() {
+        JwkKeyService.GeneratedKeyPair pair = jwkKeyService.generateEphemeralRsaKeyPair();
+        return new KeyPairGenerateResponse(pair.publicKey(), pair.privateKey());
     }
 
     @GetMapping("/tokens")

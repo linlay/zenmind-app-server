@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,11 +62,54 @@ class AdminSecurityIntegrationTests {
         mockMvc.perform(get("/admin/api/security/tokens"))
             .andExpect(status().isUnauthorized());
 
+        mockMvc.perform(post("/admin/api/security/public-key/generate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"e\":\"AQAB\",\"n\":\"abc\"}"))
+            .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/admin/api/security/key-pair/generate"))
+            .andExpect(status().isUnauthorized());
+
         MockCookie cookie = adminLoginCookie();
         mockMvc.perform(get("/admin/api/security/jwks").cookie(cookie))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.appJwks.keys[0].kty").value("RSA"))
-            .andExpect(jsonPath("$.oidcJwks.keys[0].kty").value("RSA"));
+            .andExpect(jsonPath("$.jwks.keys[0].kty").value("RSA"));
+    }
+
+    @Test
+    void generatePublicKeyAndKeyPairShouldWork() throws Exception {
+        MockCookie cookie = adminLoginCookie();
+        MvcResult jwksResult = mockMvc.perform(get("/admin/api/security/jwks").cookie(cookie))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        JsonNode jwk = readJson(jwksResult).path("jwks").path("keys").path(0);
+        String e = jwk.path("e").asText();
+        String n = jwk.path("n").asText();
+
+        mockMvc.perform(post("/admin/api/security/public-key/generate")
+                .cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"e\":\"" + e + "\",\"n\":\"" + n + "\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.publicKey").value(Matchers.startsWith("-----BEGIN PUBLIC KEY-----")));
+
+        mockMvc.perform(post("/admin/api/security/key-pair/generate")
+                .cookie(cookie))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.publicKey").value(Matchers.startsWith("-----BEGIN PUBLIC KEY-----")))
+            .andExpect(jsonPath("$.privateKey").value(Matchers.startsWith("-----BEGIN PRIVATE KEY-----")));
+    }
+
+    @Test
+    void generatePublicKeyShouldValidateInput() throws Exception {
+        MockCookie cookie = adminLoginCookie();
+        mockMvc.perform(post("/admin/api/security/public-key/generate")
+                .cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"e\":\"%%%\",\"n\":\"%%%\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").isNotEmpty());
     }
 
     @Test

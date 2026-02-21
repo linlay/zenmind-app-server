@@ -26,15 +26,15 @@ class AuthBackendApplicationTests {
     }
 
     @Test
-    void jwksEndpointsShouldExposePublicKeyPem() throws Exception {
+    void jwksEndpointsShouldExposeStandardJwkSet() throws Exception {
         mockMvc.perform(get("/openid/jwks"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.keys[0].kty").value("RSA"))
-            .andExpect(jsonPath("$.publicKey").value(org.hamcrest.Matchers.startsWith("-----BEGIN PUBLIC KEY-----")));
+            .andExpect(jsonPath("$.publicKey").doesNotExist());
 
         mockMvc.perform(get("/api/auth/jwks"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.keys[0].kty").value("RSA"))
-            .andExpect(jsonPath("$.publicKey").value(org.hamcrest.Matchers.startsWith("-----BEGIN PUBLIC KEY-----")));
+            .andExpect(jsonPath("$.publicKey").doesNotExist());
     }
 }

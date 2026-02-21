@@ -12,3 +12,10 @@ frontend/.env.*.local
 *.log
 
 release/
+
+# runtime sqlite data
+data/
+auth.db
+auth.db-*
+backend/auth.db
+backend/auth.db-*

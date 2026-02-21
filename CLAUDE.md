@@ -180,6 +180,9 @@
 | POST | `/admin/api/session/logout` | Cookie | - | 204（同时清理 Cookie） |
 | GET | `/admin/api/session/me` | Cookie | - | `username`, `issuedAt` |
 | POST | `/admin/api/bcrypt/generate` | 无 | `password` | `{"bcrypt":"$2a$..."}` |
+| GET | `/admin/api/security/jwks` | Cookie | - | `{"jwks":{"keys":[...]}}` |
+| POST | `/admin/api/security/public-key/generate` | Cookie | `e`, `n` | `{"publicKey":"-----BEGIN PUBLIC KEY-----..."}` |
+| POST | `/admin/api/security/key-pair/generate` | Cookie | - | `{"publicKey":"...","privateKey":"..."}` |
 
 ### 2.5 Admin User API
 

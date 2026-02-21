@@ -130,6 +130,17 @@ button.danger {
   overflow: auto;
 }
 
+.pem-block {
+  background: #020617;
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 12px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 .token-cell {
   max-width: 360px;
   white-space: normal;

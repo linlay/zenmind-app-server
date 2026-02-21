@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$ROOT_DIR/backend"
 FRONTEND_DIR="$ROOT_DIR/frontend"
 RELEASE_DIR="$ROOT_DIR/release"
+COMPOSE_FILE="$ROOT_DIR/docker-compose.yml"
 
 log() {
   printf '[package] %s\n' "$*"
@@ -27,6 +28,11 @@ fi
 
 if [ ! -f "$FRONTEND_DIR/package.json" ]; then
   printf '[package] frontend/package.json not found\n' >&2
+  exit 1
+fi
+
+if [ ! -f "$COMPOSE_FILE" ]; then
+  printf '[package] docker-compose.yml not found in project root\n' >&2
   exit 1
 fi
 
@@ -83,35 +89,7 @@ EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 EOF
 
-cat >"$RELEASE_DIR/docker-compose.yml" <<'EOF'
-services:
-  backend:
-    build:
-      context: ./backend
-    container_name: app-auth-backend
-    environment:
-      AUTH_DB_PATH: /data/auth.db
-      AUTH_ISSUER: ${AUTH_ISSUER:-http://localhost:8080}
-      AUTH_ADMIN_USERNAME: ${AUTH_ADMIN_USERNAME:-admin}
-      AUTH_ADMIN_PASSWORD_BCRYPT: ${AUTH_ADMIN_PASSWORD_BCRYPT:-$$2a$$10$$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG}
-      AUTH_APP_INTERNAL_WEBHOOK_SECRET: ${AUTH_APP_INTERNAL_WEBHOOK_SECRET:-change-me}
-    volumes:
-      - auth_data:/data
-    ports:
-      - "8080:8080"
-
-  frontend:
-    build:
-      context: ./frontend
-    container_name: app-auth-frontend
-    depends_on:
-      - backend
-    ports:
-      - "8081:80"
-
-volumes:
-  auth_data:
-EOF
+cp "$COMPOSE_FILE" "$RELEASE_DIR/docker-compose.yml"
 
 cat >"$RELEASE_DIR/.env.example" <<'EOF'
 # OAuth/OIDC issuer, should be your real backend URL in production.

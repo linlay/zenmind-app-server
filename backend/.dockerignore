@@ -2,3 +2,5 @@ target
 .git
 .idea
 *.log
+auth.db
+auth.db-*
