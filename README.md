@@ -13,6 +13,8 @@
 docker compose up --build
 ```
 
+建议在项目根目录准备 `.env`（可先用 `.env.example`），`docker-compose.yml`、`package.sh`、前端 Vite 配置都读取根目录 `.env`。
+
 ## 3. 默认账号
 
 - Admin: `admin / Admin@Auth`

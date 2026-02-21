@@ -6,6 +6,7 @@ BACKEND_DIR="$ROOT_DIR/backend"
 FRONTEND_DIR="$ROOT_DIR/frontend"
 RELEASE_DIR="$ROOT_DIR/release"
 COMPOSE_FILE="$ROOT_DIR/docker-compose.yml"
+ROOT_ENV_EXAMPLE="$ROOT_DIR/.env.example"
 
 log() {
   printf '[package] %s\n' "$*"
@@ -34,6 +35,19 @@ fi
 if [ ! -f "$COMPOSE_FILE" ]; then
   printf '[package] docker-compose.yml not found in project root\n' >&2
   exit 1
+fi
+
+if [ ! -f "$ROOT_ENV_EXAMPLE" ]; then
+  printf '[package] .env.example not found in project root\n' >&2
+  exit 1
+fi
+
+if [ -f "$ROOT_DIR/.env" ]; then
+  log "load environment from $ROOT_DIR/.env"
+  set -a
+  # shellcheck disable=SC1090
+  . "$ROOT_DIR/.env"
+  set +a
 fi
 
 log "clean release directory: $RELEASE_DIR"
@@ -90,20 +104,7 @@ CMD ["nginx", "-g", "daemon off;"]
 EOF
 
 cp "$COMPOSE_FILE" "$RELEASE_DIR/docker-compose.yml"
-
-cat >"$RELEASE_DIR/.env.example" <<'EOF'
-# OAuth/OIDC issuer, should be your real backend URL in production.
-AUTH_ISSUER=http://localhost:8080
-
-# Admin login account.
-AUTH_ADMIN_USERNAME=admin
-
-# bcrypt for admin password.
-AUTH_ADMIN_PASSWORD_BCRYPT=$2a$10$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG
-
-# HMAC secret for /api/app/internal/chat-events.
-AUTH_APP_INTERNAL_WEBHOOK_SECRET=change-me
-EOF
+cp "$ROOT_ENV_EXAMPLE" "$RELEASE_DIR/.env.example"
 
 cat >"$RELEASE_DIR/DEPLOY.md" <<'EOF'
 # Release Deployment
@@ -114,6 +115,7 @@ cat >"$RELEASE_DIR/DEPLOY.md" <<'EOF'
    cp .env.example .env
 
 3. Edit `.env` with production values.
+   Backend and frontend image build both read this root `.env` first.
 4. Start with Docker Compose:
 
    docker compose up -d --build
