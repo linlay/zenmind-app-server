@@ -1,11 +1,11 @@
-# AGW App Server - CLAUDE.md
+# App Server - CLAUDE.md
 
 本文档基于当前项目实现（`backend` + `frontend`）整理，目标是让开发、联调、网关接入时可以快速理解系统结构与 API 约定。
 
 ## 1. 技术架构
 
 ### 1.1 系统定位
-`agw-app-server` 是认证与通知中台，统一提供：
+`app-server` 是认证与通知中台，统一提供：
 - OAuth2 / OIDC 授权服务（授权码 + 刷新）
 - App 轻量认证（主密码 + 设备令牌 + 短期 JWT）
 - 消息盒子（Inbox）与 WebSocket 实时推送
@@ -69,8 +69,8 @@
 #### 内部回调鉴权
 - 接口：`POST /api/app/internal/chat-events`
 - 头：
-  - `X-AGW-Timestamp`（秒级 Unix 时间戳）
-  - `X-AGW-Signature`（hex）
+  - `X-App-Timestamp`（秒级 Unix 时间戳）
+  - `X-App-Signature`（hex）
 - 签名串：`timestamp + "." + rawBody`
 - 算法：HMAC-SHA256
 - 时间偏差容忍：300 秒
@@ -108,9 +108,15 @@
 - `OAUTH2_AUTHORIZATION_`
 - `OAUTH2_CONSENT_`
 
-### 1.8 关键配置
+### 1.8 关键配置（含用途）
 - `AUTH_ISSUER`
+  - 统一定义发行者（issuer），用于：
+    - OAuth2/OIDC 元数据（`/openid/.well-known/*`）里的 `issuer` 与各 endpoint URL
+    - Authorization Server 的 issuer 设置（影响 OAuth2/OIDC 令牌签发）
+    - App Access Token 的 `iss` claim 签发与验签校验（`AppTokenService`）
 - `AUTH_DB_PATH`
+  - SQLite 数据库文件路径（默认 `./auth.db`）
+  - 业务数据、授权数据、JWK 密钥都存这里
 - `AUTH_ADMIN_USERNAME`
 - `AUTH_ADMIN_PASSWORD_BCRYPT`
 - `AUTH_BOOTSTRAP_USER`
@@ -122,6 +128,16 @@
 - `AUTH_APP_MAX_ACCESS_TTL`
 - `AUTH_APP_ROTATE_DEVICE_TOKEN`
 - `AUTH_APP_INTERNAL_WEBHOOK_SECRET`
+- `AUTH_TOKEN_ACCESS_TTL`
+- `AUTH_TOKEN_REFRESH_TTL`
+- `AUTH_TOKEN_ROTATE_REFRESH_TOKEN`
+
+### 1.9 JWK 私钥存储
+- `privateKey` 不在 `application.yml` 里以明文配置，而是由 `JwkKeyService` 首次启动自动生成 RSA 密钥对
+- 生成后落库到 `JWK_KEY_` 表：
+  - `PUBLIC_KEY_`：Base64(X.509 DER)
+  - `PRIVATE_KEY_`：Base64(PKCS#8 DER)
+- 对外只暴露公钥：`/openid/jwks`（OAuth2/OIDC）与 `/api/auth/jwks`（App）
 
 ## 2. API 定义
 
@@ -153,7 +169,7 @@
 | GET | `/api/app/inbox/unread-count` | Bearer | - | `{"unreadCount": number}` |
 | POST | `/api/app/inbox/read` | Bearer | `{"messageIds":[UUID,...]}` | 204 |
 | POST | `/api/app/inbox/read-all` | Bearer | - | 204 |
-| POST | `/api/app/internal/chat-events` | HMAC | 头：`X-AGW-Timestamp`、`X-AGW-Signature`，体：`chatId`、`runId`、`updatedAt?`、`chatName?` | `{"accepted":true,"duplicate":boolean}` |
+| POST | `/api/app/internal/chat-events` | HMAC | 头：`X-App-Timestamp`、`X-App-Signature`，体：`chatId`、`runId`、`updatedAt?`、`chatName?` | `{"accepted":true,"duplicate":boolean}` |
 | WS | `/api/app/ws` | Bearer | Header 或 query token | 实时事件流 |
 
 ### 2.4 Admin Session / Security API

@@ -107,3 +107,73 @@ button.danger {
   display: flex;
   gap: 8px;
 }
+
+.success {
+  color: #0f766e;
+  margin-bottom: 12px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.json-block {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 12px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.token-cell {
+  max-width: 360px;
+  white-space: normal;
+  word-break: break-all;
+  margin-bottom: 8px;
+}
+
+.badge {
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.badge-green {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-red {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-gray {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.filter-row {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-bottom: 14px;
+}
+
+.table.compact th,
+.table.compact td {
+  padding: 6px 4px;
+}
+
+.inner-card {
+  margin-top: 14px;
+  margin-bottom: 0;
+  box-shadow: none;
+  border: 1px solid #e2e8f0;
+}

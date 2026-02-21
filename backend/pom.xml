@@ -9,11 +9,11 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.agw</groupId>
+    <groupId>com.app</groupId>
     <artifactId>auth-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>auth-backend</name>
-    <description>AGW Auth Backend</description>
+    <description>App Auth Backend</description>
 
     <properties>
         <java.version>21</java.version>

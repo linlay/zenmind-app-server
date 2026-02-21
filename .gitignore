@@ -1,4 +1,5 @@
 .DS_Store
+AGENTS.md
 
 backend/target/
 backend/.mvn/
@@ -9,3 +10,5 @@ frontend/.env.local
 frontend/.env.*.local
 
 *.log
+
+release/

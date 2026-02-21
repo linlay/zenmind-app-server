@@ -1,4 +1,4 @@
-# AGW App Server
+# App Server
 
 统一认证中心 + App 设备认证 + 消息盒子 + 管理端 API。
 
@@ -27,24 +27,39 @@ docker compose up --build
 - App Inbox: `/api/app/*`
 - Admin: `/admin/api/*`
 
-## 5. curl 验证（可直接复制）
+## 5. 关键配置说明
+
+- `AUTH_DB_PATH`
+  - SQLite 文件路径（默认 `./auth.db`）。
+  - JWK 密钥也在这个库里，表 `JWK_KEY_` 的 `PRIVATE_KEY_` 列就是私钥（Base64 编码的 PKCS#8）。
+- `AUTH_ISSUER`（默认 `http://localhost:8080`）
+  - 作为 OAuth2/OIDC 的 issuer，写入 `/.well-known` 元数据和令牌相关配置。
+  - 也用于 App Access Token 的 `iss` claim 签发与校验，不一致会导致 token 验证失败。
+- `AUTH_APP_INTERNAL_WEBHOOK_SECRET`
+  - 用于 `/api/app/internal/chat-events` 的 HMAC-SHA256 签名校验。
+- `AUTH_TOKEN_ACCESS_TTL` / `AUTH_TOKEN_REFRESH_TTL` / `AUTH_TOKEN_ROTATE_REFRESH_TOKEN`
+  - 控制 OAuth2 客户端 access token / refresh token 生命周期与是否轮换 refresh token。
+
+## 6. curl 验证（可直接复制）
 
 > 以下命令默认在 macOS / Linux 下执行。
 
-### 5.1 初始化变量
+### 6.1 初始化变量
 
 ```bash
-BASE_URL="http://localhost:8080"
+BASE_URL="http://localhost:11952"
 ```
 
-### 5.2 基础可用性检查
+> `BASE_URL` 建议指向后端 `8080`。`8081` 前端容器只代理 `/admin/api`、`/oauth2`、`/openid`，不代理 `/api/auth`、`/api/app`。
+
+### 6.2 基础可用性检查
 
 ```bash
 curl -sS "$BASE_URL/openid/.well-known/openid-configuration"
 curl -sS "$BASE_URL/openid/.well-known/oauth-authorization-server"
 ```
 
-### 5.3 App 登录（拿 accessToken / deviceToken）
+### 6.3 App 登录（拿 accessToken / deviceToken）
 
 ```bash
 LOGIN_JSON="$(curl -sS -X POST "$BASE_URL/api/auth/login" \
@@ -66,7 +81,7 @@ echo "DEVICE_TOKEN length: ${#DEVICE_TOKEN}"
 echo "DEVICE_ID: $DEVICE_ID"
 ```
 
-### 5.4 验证 App 鉴权接口
+### 6.4 验证 App 鉴权接口
 
 ```bash
 curl -sS "$BASE_URL/api/auth/me" \
@@ -81,7 +96,7 @@ curl -sS -X PATCH "$BASE_URL/api/auth/devices/$DEVICE_ID" \
   -d '{"deviceName":"My-Mac"}'
 ```
 
-### 5.5 刷新 access token
+### 6.5 刷新 access token
 
 ```bash
 REFRESH_JSON="$(curl -sS -X POST "$BASE_URL/api/auth/refresh" \
@@ -99,7 +114,7 @@ echo "NEW_DEVICE_TOKEN length: ${#NEW_DEVICE_TOKEN}"
 
 > `accessTtlSeconds` 为可选字段，不传时使用服务端默认值 `AUTH_APP_ACCESS_TTL`（默认 `PT10M`）。可申请的最大值受 `AUTH_APP_MAX_ACCESS_TTL` 限制（默认 `PT12H`）。
 
-### 5.6 管理员登录（拿 Cookie）
+### 6.6 管理员登录（拿 Cookie）
 
 ```bash
 ADMIN_COOKIE_JAR="$(mktemp)"
@@ -116,7 +131,7 @@ curl -sS "$BASE_URL/admin/api/session/me" \
   -b "$ADMIN_COOKIE_JAR"
 ```
 
-### 5.7 管理员发送消息 -> App 侧查看
+### 6.7 管理员发送消息 -> App 侧查看
 
 ```bash
 SEND_JSON="$(curl -sS -X POST "$BASE_URL/admin/api/inbox/send" \
@@ -141,7 +156,7 @@ curl -sS "$BASE_URL/api/app/inbox?limit=20" \
   -H "Authorization: Bearer $ACCESS_TOKEN"
 ```
 
-### 5.8 App 侧标记已读
+### 6.8 App 侧标记已读
 
 ```bash
 curl -i -X POST "$BASE_URL/api/app/inbox/read" \
@@ -156,7 +171,7 @@ curl -sS "$BASE_URL/api/app/inbox/unread-count" \
   -H "Authorization: Bearer $ACCESS_TOKEN"
 ```
 
-### 5.9 管理端用户/客户端 API 验证
+### 6.9 管理端用户/客户端 API 验证
 
 ```bash
 # 用户列表
@@ -192,7 +207,7 @@ curl -sS -X POST "$BASE_URL/admin/api/clients" \
   }'
 ```
 
-### 5.10 内部回调签名验证（HMAC）
+### 6.10 内部回调签名验证（HMAC）
 
 > 依赖 `openssl`。
 
@@ -208,12 +223,12 @@ echo "SIGNATURE=$SIGNATURE"
 
 curl -sS -X POST "$BASE_URL/api/app/internal/chat-events" \
   -H "Content-Type: application/json" \
-  -H "X-AGW-Timestamp: $TIMESTAMP" \
-  -H "X-AGW-Signature: $SIGNATURE" \
+  -H "X-App-Timestamp: $TIMESTAMP" \
+  -H "X-App-Signature: $SIGNATURE" \
   -d "$BODY"
 ```
 
-### 5.11 注销与清理
+### 6.11 注销与清理
 
 ```bash
 curl -i -X POST "$BASE_URL/api/auth/logout" \
@@ -225,9 +240,9 @@ curl -i -X POST "$BASE_URL/admin/api/session/logout" \
 rm -f "$ADMIN_COOKIE_JAR"
 ```
 
-## 6. API 定义总览
+## 7. API 定义总览
 
-### 6.1 App Auth
+### 7.1 App Auth
 
 - `POST /api/auth/login`
 - `POST /api/auth/refresh`
@@ -238,7 +253,7 @@ rm -f "$ADMIN_COOKIE_JAR"
 - `DELETE /api/auth/devices/{deviceId}`
 - `GET /api/auth/jwks`
 
-### 6.2 App Inbox
+### 7.2 App Inbox
 
 - `GET /api/app/inbox`
 - `GET /api/app/inbox/unread-count`
@@ -247,7 +262,7 @@ rm -f "$ADMIN_COOKIE_JAR"
 - `POST /api/app/internal/chat-events`
 - `WS /api/app/ws`
 
-### 6.3 Admin
+### 7.3 Admin
 
 - Session
   - `POST /admin/api/session/login`
@@ -277,7 +292,7 @@ rm -f "$ADMIN_COOKIE_JAR"
   - `POST /admin/api/inbox/read-all`
   - `POST /admin/api/inbox/realtime`
 
-### 6.4 OAuth2 / OIDC
+### 7.4 OAuth2 / OIDC
 
 - `GET /oauth2/authorize`
 - `POST /oauth2/token`
@@ -292,7 +307,7 @@ rm -f "$ADMIN_COOKIE_JAR"
 - `GET /openid/consent`
 - `POST /openid/consent`
 
-## 7. 常见错误
+## 8. 常见错误
 
 - `400`：参数不合法（例如字段为空、格式错误）
 - `401`：鉴权失败（Bearer/Cookie/HMAC）
