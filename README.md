@@ -17,7 +17,7 @@ docker compose up --build
 
 ## 3. 默认账号
 
-- Admin: `admin / Admin@Auth`
+- Admin: `admin / password`
 - OAuth 测试用户: `user / password`
 - App 主密码: `password`
 
