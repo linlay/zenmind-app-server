@@ -10,6 +10,7 @@ import com.app.auth.domain.TokenAuditRecord;
 import com.app.auth.service.AppAuthService;
 import com.app.auth.service.AppAuthService.LoginResult;
 import com.app.auth.service.AppAuthService.RefreshResult;
+import com.app.auth.service.AppAccessControlService;
 import com.app.auth.service.JwkKeyService;
 import com.app.auth.service.TokenAuditService;
 import com.app.auth.web.dto.AdminAppTokenIssueRequest;
@@ -18,6 +19,8 @@ import com.app.auth.web.dto.AppDeviceResponse;
 import com.app.auth.web.dto.AppLoginResponse;
 import com.app.auth.web.dto.AppRefreshResponse;
 import com.app.auth.web.dto.KeyPairGenerateResponse;
+import com.app.auth.web.dto.NewDeviceAccessStatusResponse;
+import com.app.auth.web.dto.NewDeviceAccessUpdateRequest;
 import com.app.auth.web.dto.PublicKeyGenerateRequest;
 import com.app.auth.web.dto.PublicKeyGenerateResponse;
 import com.app.auth.web.dto.TokenAuditResponse;
@@ -26,6 +29,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -37,22 +41,25 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminSecurityController {
 
     private final AppAuthService appAuthService;
+    private final AppAccessControlService appAccessControlService;
     private final JwkKeyService jwkKeyService;
     private final TokenAuditService tokenAuditService;
 
     public AdminSecurityController(
         AppAuthService appAuthService,
+        AppAccessControlService appAccessControlService,
         JwkKeyService jwkKeyService,
         TokenAuditService tokenAuditService
     ) {
         this.appAuthService = appAuthService;
+        this.appAccessControlService = appAccessControlService;
         this.jwkKeyService = jwkKeyService;
         this.tokenAuditService = tokenAuditService;
     }
 
     @PostMapping("/app-tokens/issue")
     public AppLoginResponse issueAppAccessToken(@Valid @RequestBody AdminAppTokenIssueRequest request) {
-        LoginResult result = appAuthService.login(
+        LoginResult result = appAuthService.loginForAdmin(
                 request.masterPassword(),
                 request.deviceName(),
                 request.accessTtlSeconds()
@@ -89,6 +96,19 @@ public class AdminSecurityController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void revokeAppDevice(@PathVariable UUID deviceId) {
         appAuthService.revokeDevice(deviceId);
+    }
+
+    @GetMapping("/new-device-access")
+    public NewDeviceAccessStatusResponse getNewDeviceAccess() {
+        return new NewDeviceAccessStatusResponse(appAccessControlService.isNewDeviceLoginAllowed());
+    }
+
+    @PutMapping("/new-device-access")
+    public NewDeviceAccessStatusResponse updateNewDeviceAccess(
+        @Valid @RequestBody NewDeviceAccessUpdateRequest request
+    ) {
+        boolean enabled = appAccessControlService.setNewDeviceLoginAllowed(request.allowNewDeviceLogin());
+        return new NewDeviceAccessStatusResponse(enabled);
     }
 
     @GetMapping("/jwks")

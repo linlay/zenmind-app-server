@@ -41,7 +41,12 @@ public class AppApiAuthFilter extends OncePerRequestFilter {
             return true;
         }
 
-        if ("/api/auth/login".equals(path) || "/api/auth/refresh".equals(path) || "/api/auth/jwks".equals(path)) {
+        if (
+            "/api/auth/login".equals(path) ||
+            "/api/auth/refresh".equals(path) ||
+            "/api/auth/jwks".equals(path) ||
+            "/api/auth/new-device-access".equals(path)
+        ) {
             return true;
         }
 

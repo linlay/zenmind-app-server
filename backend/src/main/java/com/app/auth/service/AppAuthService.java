@@ -12,15 +12,18 @@ import com.app.auth.config.AuthProperties;
 import com.app.auth.domain.DeviceRecord;
 import com.app.auth.security.AppPrincipal;
 import com.app.auth.service.AppTokenService.IssuedAccessToken;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AppAuthService {
 
     private final AuthProperties authProperties;
     private final PasswordEncoder passwordEncoder;
+    private final AppAccessControlService appAccessControlService;
     private final DeviceService deviceService;
     private final AppTokenService appTokenService;
     private final TokenAuditService tokenAuditService;
@@ -29,18 +32,36 @@ public class AppAuthService {
     public AppAuthService(
         AuthProperties authProperties,
         PasswordEncoder passwordEncoder,
+        AppAccessControlService appAccessControlService,
         DeviceService deviceService,
         AppTokenService appTokenService,
         TokenAuditService tokenAuditService
     ) {
         this.authProperties = authProperties;
         this.passwordEncoder = passwordEncoder;
+        this.appAccessControlService = appAccessControlService;
         this.deviceService = deviceService;
         this.appTokenService = appTokenService;
         this.tokenAuditService = tokenAuditService;
     }
 
     public Optional<LoginResult> login(String masterPassword, String deviceName, Integer accessTtlSeconds) {
+        return loginInternal(masterPassword, deviceName, accessTtlSeconds, true);
+    }
+
+    public Optional<LoginResult> loginForAdmin(String masterPassword, String deviceName, Integer accessTtlSeconds) {
+        return loginInternal(masterPassword, deviceName, accessTtlSeconds, false);
+    }
+
+    private Optional<LoginResult> loginInternal(
+        String masterPassword,
+        String deviceName,
+        Integer accessTtlSeconds,
+        boolean enforceNewDeviceGate
+    ) {
+        if (enforceNewDeviceGate && !appAccessControlService.isNewDeviceLoginAllowed()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "new device onboarding is disabled");
+        }
         if (!verifyMasterPassword(masterPassword)) {
             return Optional.empty();
         }
@@ -143,6 +164,10 @@ public class AppAuthService {
     public void revokeDevice(UUID deviceId) {
         deviceService.revoke(deviceId);
         tokenAuditService.markRevokedByDeviceId(deviceId);
+    }
+
+    public boolean isNewDeviceLoginAllowed() {
+        return appAccessControlService.isNewDeviceLoginAllowed();
     }
 
     private boolean verifyMasterPassword(String masterPassword) {

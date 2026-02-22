@@ -1,0 +1,37 @@
+:root {
+  --font-ui: "SF Pro Text", "Avenir Next", "Segoe UI", sans-serif;
+  --text-primary: #1d1d1f;
+  --text-secondary: #525866;
+  --text-muted: #6f7685;
+
+  --bg-canvas: #f5f6f8;
+  --bg-layer: rgba(255, 255, 255, 0.72);
+  --bg-card: rgba(255, 255, 255, 0.9);
+  --bg-card-solid: #ffffff;
+
+  --line-soft: #e8eaf0;
+  --line-strong: #d3d8e2;
+
+  --primary: #0a84ff;
+  --primary-strong: #0066d6;
+  --secondary: #4a5261;
+  --danger: #cf2e2e;
+  --success: #1b8f55;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+
+  --shadow-sm: 0 1px 2px rgba(17, 24, 39, 0.06);
+  --shadow-md: 0 8px 28px rgba(15, 23, 42, 0.08);
+
+  --space-1: 8px;
+  --space-2: 12px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+
+  --motion-fast: 140ms;
+  --motion-base: 200ms;
+  --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}

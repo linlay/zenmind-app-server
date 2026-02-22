@@ -2,6 +2,7 @@ package com.app.auth;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -12,6 +13,7 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.app.auth.service.AppAccessControlService;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,11 +52,15 @@ class AdminSecurityIntegrationTests {
     @Autowired
     private RegisteredClientRepository registeredClientRepository;
 
+    @Autowired
+    private AppAccessControlService appAccessControlService;
+
     @BeforeEach
     void setUp() {
         jdbcTemplate.update("DELETE FROM TOKEN_AUDIT_");
         jdbcTemplate.update("DELETE FROM oauth2_authorization");
         jdbcTemplate.update("DELETE FROM DEVICE_");
+        appAccessControlService.setNewDeviceLoginAllowed(false);
     }
 
     @Test
@@ -70,10 +76,40 @@ class AdminSecurityIntegrationTests {
         mockMvc.perform(post("/admin/api/security/key-pair/generate"))
             .andExpect(status().isUnauthorized());
 
+        mockMvc.perform(get("/admin/api/security/new-device-access"))
+            .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(put("/admin/api/security/new-device-access")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"allowNewDeviceLogin\":true}"))
+            .andExpect(status().isUnauthorized());
+
         MockCookie cookie = adminLoginCookie();
         mockMvc.perform(get("/admin/api/security/jwks").cookie(cookie))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.jwks.keys[0].kty").value("RSA"));
+    }
+
+    @Test
+    void newDeviceAccessToggleShouldWork() throws Exception {
+        MockCookie cookie = adminLoginCookie();
+
+        mockMvc.perform(get("/admin/api/security/new-device-access")
+                .cookie(cookie))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.allowNewDeviceLogin").value(false));
+
+        mockMvc.perform(put("/admin/api/security/new-device-access")
+                .cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"allowNewDeviceLogin\":true}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.allowNewDeviceLogin").value(true));
+
+        mockMvc.perform(get("/admin/api/security/new-device-access")
+                .cookie(cookie))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.allowNewDeviceLogin").value(true));
     }
 
     @Test

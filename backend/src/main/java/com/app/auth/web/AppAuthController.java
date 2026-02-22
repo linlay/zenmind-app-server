@@ -17,6 +17,7 @@ import com.app.auth.web.dto.AppMeResponse;
 import com.app.auth.web.dto.AppRefreshRequest;
 import com.app.auth.web.dto.AppRefreshResponse;
 import com.app.auth.web.dto.DeviceRenameRequest;
+import com.app.auth.web.dto.NewDeviceAccessStatusResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -116,6 +117,11 @@ public class AppAuthController {
     @GetMapping("/jwks")
     public Map<String, Object> jwks() {
         return jwkKeyService.publicJwksResponse();
+    }
+
+    @GetMapping("/new-device-access")
+    public NewDeviceAccessStatusResponse newDeviceAccess() {
+        return new NewDeviceAccessStatusResponse(appAuthService.isNewDeviceLoginAllowed());
     }
 
     private AppPrincipal requirePrincipal(Authentication authentication) {

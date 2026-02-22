@@ -10,6 +10,7 @@ import java.time.Instant;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.app.auth.service.AppAccessControlService;
 import com.app.auth.service.AppInternalEventAuthService;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,15 +41,20 @@ class AppAuthInboxIntegrationTests {
     @Autowired
     private AppInternalEventAuthService appInternalEventAuthService;
 
+    @Autowired
+    private AppAccessControlService appAccessControlService;
+
     @BeforeEach
     void setUp() {
         jdbcTemplate.update("DELETE FROM CHAT_EVENT_DEDUP_");
         jdbcTemplate.update("DELETE FROM INBOX_MESSAGE_");
         jdbcTemplate.update("DELETE FROM DEVICE_");
+        appAccessControlService.setNewDeviceLoginAllowed(false);
     }
 
     @Test
     void loginRefreshAndRevokeShouldWork() throws Exception {
+        appAccessControlService.setNewDeviceLoginAllowed(true);
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -90,6 +96,7 @@ class AppAuthInboxIntegrationTests {
 
     @Test
     void revokedDeviceShouldNotRefresh() throws Exception {
+        appAccessControlService.setNewDeviceLoginAllowed(true);
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -119,6 +126,7 @@ class AppAuthInboxIntegrationTests {
 
     @Test
     void customAccessTtlShouldWorkWithinConfiguredLimit() throws Exception {
+        appAccessControlService.setNewDeviceLoginAllowed(true);
         Instant beforeLogin = Instant.now();
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -155,6 +163,7 @@ class AppAuthInboxIntegrationTests {
 
     @Test
     void accessTtlLongerThanLimitShouldBeRejected() throws Exception {
+        appAccessControlService.setNewDeviceLoginAllowed(true);
         mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -170,6 +179,7 @@ class AppAuthInboxIntegrationTests {
 
     @Test
     void adminSendInboxShouldBeVisibleForAppAndMarkRead() throws Exception {
+        appAccessControlService.setNewDeviceLoginAllowed(true);
         MockCookie adminCookie = adminLoginCookie();
 
         mockMvc.perform(post("/admin/api/inbox/send")
@@ -210,6 +220,51 @@ class AppAuthInboxIntegrationTests {
                 .header("Authorization", "Bearer " + accessToken))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.unreadCount").value(0));
+    }
+
+    @Test
+    void newDeviceLoginShouldBeForbiddenWhenOnboardingClosed() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "masterPassword":"password",
+                      "deviceName":"Locked Device"
+                    }
+                """))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.error").value("new device onboarding is disabled"));
+    }
+
+    @Test
+    void newDeviceAccessStatusShouldBePublic() throws Exception {
+        mockMvc.perform(get("/api/auth/new-device-access"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.allowNewDeviceLogin").value(false));
+    }
+
+    @Test
+    void refreshShouldStillWorkWhenNewDeviceOnboardingClosed() throws Exception {
+        appAccessControlService.setNewDeviceLoginAllowed(true);
+        MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "masterPassword":"password",
+                      "deviceName":"Known Device"
+                    }
+                """))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        String deviceToken = readJson(loginResult).path("deviceToken").asText();
+        appAccessControlService.setNewDeviceLoginAllowed(false);
+
+        mockMvc.perform(post("/api/auth/refresh")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"deviceToken\":\"" + deviceToken + "\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.accessToken").isNotEmpty());
     }
 
     @Test
