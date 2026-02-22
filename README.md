@@ -328,3 +328,4 @@ rm -f "$ADMIN_COOKIE_JAR"
 ```json
 {"error":"..."}
 ```
+# zenmind-app-server
