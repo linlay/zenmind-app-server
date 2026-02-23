@@ -1,3 +1,4 @@
+import { AppAccessPage } from '../features/access/AppAccessPage';
 import { ClientsPage } from '../features/clients/ClientsPage';
 import { InboxPage } from '../features/inbox/InboxPage';
 import { SecurityPage } from '../features/security/SecurityPage';
@@ -9,5 +10,6 @@ export const protectedRoutes = [
   { path: '/clients', label: 'Clients', element: <ClientsPage /> },
   { path: '/inbox', label: 'Inbox', element: <InboxPage /> },
   { path: '/security', label: 'Security', element: <SecurityPage /> },
+  { path: '/app-access', label: 'App Access', element: <AppAccessPage /> },
   { path: '/tools', label: 'Tools', element: <ToolsPage /> }
 ];

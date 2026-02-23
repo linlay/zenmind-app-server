@@ -33,7 +33,6 @@ public class TokenAuditService {
     public static final String STATUS_EXPIRED = "EXPIRED";
     public static final String STATUS_REVOKED = "REVOKED";
 
-    private static final Duration RETENTION = Duration.ofDays(30);
     private static final Set<String> DEFAULT_SOURCES = Set.of(
         SOURCE_APP_ACCESS,
         SOURCE_OAUTH_ACCESS,
@@ -115,7 +114,6 @@ public class TokenAuditService {
         if (deviceId == null) {
             return;
         }
-        cleanupExpiredRetention();
         Instant now = Instant.now();
         jdbcTemplate.update(
             """
@@ -133,7 +131,6 @@ public class TokenAuditService {
         if (!StringUtils.hasText(authorizationId)) {
             return;
         }
-        cleanupExpiredRetention();
         Instant now = Instant.now();
         jdbcTemplate.update(
             """
@@ -148,7 +145,6 @@ public class TokenAuditService {
     }
 
     public List<TokenAuditRecord> listTokens(Set<String> requestedSources, String requestedStatus, int requestedLimit) {
-        cleanupExpiredRetention();
         Set<String> sources = normalizeSources(requestedSources);
         String status = normalizeStatus(requestedStatus);
         int limit = Math.max(1, Math.min(requestedLimit, 200));
@@ -236,7 +232,6 @@ public class TokenAuditService {
         if (!StringUtils.hasText(token) || !StringUtils.hasText(source) || issuedAt == null) {
             return;
         }
-        cleanupExpiredRetention();
         Instant now = Instant.now();
         String normalizedToken = token.trim();
         String tokenSha256 = sha256(normalizedToken);
@@ -275,9 +270,12 @@ public class TokenAuditService {
         );
     }
 
-    private void cleanupExpiredRetention() {
-        Instant cutoff = Instant.now().minus(RETENTION);
-        jdbcTemplate.update("DELETE FROM TOKEN_AUDIT_ WHERE ISSUED_AT_ < ?", Timestamp.from(cutoff));
+    public int deleteIssuedOlderThan(Duration retention) {
+        if (retention == null || retention.isNegative() || retention.isZero()) {
+            return 0;
+        }
+        Instant cutoff = Instant.now().minus(retention);
+        return jdbcTemplate.update("DELETE FROM TOKEN_AUDIT_ WHERE ISSUED_AT_ < ?", Timestamp.from(cutoff));
     }
 
     private static Set<String> normalizeSources(Set<String> requestedSources) {

@@ -29,6 +29,9 @@ auth:
     max-access-ttl: ${AUTH_APP_MAX_ACCESS_TTL:PT12H}
     rotate-device-token: ${AUTH_APP_ROTATE_DEVICE_TOKEN:true}
     internal-webhook-secret: ${AUTH_APP_INTERNAL_WEBHOOK_SECRET:change-me}
+  cleanup:
+    retention: ${AUTH_CLEANUP_RETENTION:PT24H}
+    cron: ${AUTH_CLEANUP_CRON:0 0 * * * *}
   bootstrap-user:
     username: ${AUTH_BOOTSTRAP_USER:user}
     password-bcrypt: ${AUTH_BOOTSTRAP_PASSWORD_BCRYPT:$2a$10$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG}

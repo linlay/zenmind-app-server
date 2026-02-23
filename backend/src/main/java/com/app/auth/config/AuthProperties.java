@@ -11,6 +11,7 @@ public class AuthProperties {
     private final Token token = new Token();
     private final Admin admin = new Admin();
     private final App app = new App();
+    private final Cleanup cleanup = new Cleanup();
     private final BootstrapUser bootstrapUser = new BootstrapUser();
 
     public String getIssuer() {
@@ -31,6 +32,10 @@ public class AuthProperties {
 
     public App getApp() {
         return app;
+    }
+
+    public Cleanup getCleanup() {
+        return cleanup;
     }
 
     public BootstrapUser getBootstrapUser() {
@@ -172,6 +177,27 @@ public class AuthProperties {
 
         public void setDisplayName(String displayName) {
             this.displayName = displayName;
+        }
+    }
+
+    public static class Cleanup {
+        private Duration retention = Duration.ofHours(24);
+        private String cron = "0 0 * * * *";
+
+        public Duration getRetention() {
+            return retention;
+        }
+
+        public void setRetention(Duration retention) {
+            this.retention = retention;
+        }
+
+        public String getCron() {
+            return cron;
+        }
+
+        public void setCron(String cron) {
+            this.cron = cron;
         }
     }
 }

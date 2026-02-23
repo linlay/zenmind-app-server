@@ -3,6 +3,7 @@ package com.app.auth.service;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -157,6 +158,20 @@ public class DeviceService {
         );
     }
 
+    public int deleteRevokedOlderThan(Duration retention) {
+        if (retention == null || retention.isNegative() || retention.isZero()) {
+            return 0;
+        }
+        Instant cutoff = Instant.now().minus(retention);
+        return jdbcTemplate.update(
+            """
+                DELETE FROM DEVICE_
+                WHERE STATUS_ = 'REVOKED' AND UPDATE_AT_ < ?
+            """,
+            Timestamp.from(cutoff)
+        );
+    }
+
     private String normalizeDeviceName(String deviceName) {
         String value = StringUtils.hasText(deviceName) ? deviceName.trim() : "Unknown Device";
         return value.length() > 64 ? value.substring(0, 64) : value;
@@ -177,4 +192,3 @@ public class DeviceService {
         );
     }
 }
-
