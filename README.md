@@ -21,6 +21,11 @@ docker compose up --build
 - OAuth 测试用户: `user / password`
 - App 主密码: `password`
 
+```bash
+# macOS
+htpasswd -nbBC 10 '' 'your-password' | cut -d: -f2
+```
+
 ## 4. API 前缀
 
 - OAuth2: `/oauth2/*`
