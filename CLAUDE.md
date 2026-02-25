@@ -115,7 +115,7 @@
     - Authorization Server 的 issuer 设置（影响 OAuth2/OIDC 令牌签发）
     - App Access Token 的 `iss` claim 签发与验签校验（`AppTokenService`）
 - `AUTH_DB_PATH`
-  - SQLite 数据库文件路径（默认 `./auth.db`）
+  - SQLite 数据库文件路径（默认 `../data/auth.db`，对应项目根目录 `data/auth.db`）
   - 业务数据、授权数据、JWK 密钥都存这里
 - `AUTH_ADMIN_USERNAME`
 - `AUTH_ADMIN_PASSWORD_BCRYPT`
@@ -240,8 +240,14 @@
   - `401` 未认证（Bearer / Cookie / HMAC 校验失败）
   - `409` 资源冲突（如唯一键冲突）
 
-## 4. 默认开发账号
+## 4. 开发环境账号说明
 
-- Admin：`admin / password`
-- OAuth 测试用户：`user / password`
-- App 主密码：`password`
+- 不再内置默认密码。
+- 必填：
+  - `AUTH_ADMIN_PASSWORD_BCRYPT`
+  - `AUTH_APP_MASTER_PASSWORD_BCRYPT`
+- 可选：
+  - `AUTH_BOOTSTRAP_USER`
+  - `AUTH_BOOTSTRAP_PASSWORD_BCRYPT`
+  - `AUTH_BOOTSTRAP_DISPLAY`
+- 当 `AUTH_BOOTSTRAP_PASSWORD_BCRYPT` 为空时，不会自动创建 bootstrap 用户。

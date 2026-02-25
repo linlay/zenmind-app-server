@@ -1,7 +1,5 @@
 .DS_Store
 AGENTS.md
-.env
-
 backend/target/
 backend/.mvn/
 

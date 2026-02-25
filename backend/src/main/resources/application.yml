@@ -4,7 +4,7 @@ server:
 spring:
   datasource:
     driver-class-name: org.sqlite.JDBC
-    url: jdbc:sqlite:${AUTH_DB_PATH:./auth.db}
+    url: jdbc:sqlite:${AUTH_DB_PATH:../data/auth.db}
   sql:
     init:
       mode: always
@@ -21,10 +21,10 @@ auth:
     rotate-refresh-token: true
   admin:
     username: ${AUTH_ADMIN_USERNAME:admin}
-    password-bcrypt: ${AUTH_ADMIN_PASSWORD_BCRYPT:$2a$10$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG}
+    password-bcrypt: ${AUTH_ADMIN_PASSWORD_BCRYPT}
   app:
     username: ${AUTH_APP_USERNAME:app}
-    master-password-bcrypt: ${AUTH_APP_MASTER_PASSWORD_BCRYPT:$2a$10$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG}
+    master-password-bcrypt: ${AUTH_APP_MASTER_PASSWORD_BCRYPT}
     access-ttl: ${AUTH_APP_ACCESS_TTL:PT10M}
     max-access-ttl: ${AUTH_APP_MAX_ACCESS_TTL:PT12H}
     rotate-device-token: ${AUTH_APP_ROTATE_DEVICE_TOKEN:true}
@@ -33,9 +33,9 @@ auth:
     retention: ${AUTH_CLEANUP_RETENTION:PT24H}
     cron: ${AUTH_CLEANUP_CRON:0 0 * * * *}
   bootstrap-user:
-    username: ${AUTH_BOOTSTRAP_USER:user}
-    password-bcrypt: ${AUTH_BOOTSTRAP_PASSWORD_BCRYPT:$2a$10$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG}
-    display-name: ${AUTH_BOOTSTRAP_DISPLAY:Default User}
+    username: ${AUTH_BOOTSTRAP_USER:}
+    password-bcrypt: ${AUTH_BOOTSTRAP_PASSWORD_BCRYPT:}
+    display-name: ${AUTH_BOOTSTRAP_DISPLAY:}
 
 logging:
   level:

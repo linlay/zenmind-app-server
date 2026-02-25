@@ -33,7 +33,14 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+    "AUTH_DB_PATH=./target/test-auth.db",
+    "AUTH_ADMIN_PASSWORD_BCRYPT=$2a$10$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG",
+    "AUTH_APP_MASTER_PASSWORD_BCRYPT=$2a$10$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG",
+    "AUTH_BOOTSTRAP_USER=user",
+    "AUTH_BOOTSTRAP_PASSWORD_BCRYPT=$2a$10$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG",
+    "AUTH_BOOTSTRAP_DISPLAY=Default User"
+})
 @AutoConfigureMockMvc
 class AdminSecurityIntegrationTests {
 

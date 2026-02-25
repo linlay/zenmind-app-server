@@ -13,13 +13,16 @@
 docker compose up --build
 ```
 
-建议在项目根目录准备 `.env`（可先用 `.env.example`），`docker-compose.yml`、`package.sh`、前端 Vite 配置都读取根目录 `.env`。
+请在项目根目录准备 `.env`，`docker-compose.yml`、`package.sh`、前端 Vite 配置都读取根目录 `.env`。
 
-## 3. 默认账号
+## 3. 账号与密码配置
 
-- Admin: `admin / password`
-- OAuth 测试用户: `user / password`
-- App 主密码: `password`
+- 不再内置默认密码。
+- 必须在 `.env` 中设置：
+  - `AUTH_ADMIN_PASSWORD_BCRYPT`
+  - `AUTH_APP_MASTER_PASSWORD_BCRYPT`
+- `AUTH_BOOTSTRAP_*` 为可选。若 `AUTH_BOOTSTRAP_PASSWORD_BCRYPT` 留空，则不会自动创建 bootstrap 用户。
+- 下文示例里使用 `password` 仅用于演示，请替换为你的实际密码。
 
 ```bash
 # macOS
@@ -37,7 +40,7 @@ htpasswd -nbBC 10 '' 'your-password' | cut -d: -f2
 ## 5. 关键配置说明
 
 - `AUTH_DB_PATH`
-  - SQLite 文件路径（默认 `./auth.db`）。
+  - SQLite 文件路径（默认 `../data/auth.db`，对应项目根目录 `data/auth.db`）。
   - JWK 密钥也在这个库里，表 `JWK_KEY_` 的 `PRIVATE_KEY_` 列就是私钥（Base64 编码的 PKCS#8）。
 - `AUTH_ISSUER`（默认 `http://localhost:8080`）
   - 作为 OAuth2/OIDC 的 issuer，写入 `/.well-known` 元数据和令牌相关配置。

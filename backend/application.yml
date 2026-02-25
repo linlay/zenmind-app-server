@@ -4,7 +4,7 @@ server:
 auth:
   admin:
     username: ${AUTH_ADMIN_USERNAME:admin}
-    password-bcrypt: ${AUTH_ADMIN_PASSWORD_BCRYPT:$2y$10$BNlXqY.eVDQ20O.tbfj15egchG/Zw1ZTMe86HG6eCYSBB7sbnI.tK}
+    password-bcrypt: ${AUTH_ADMIN_PASSWORD_BCRYPT}
   app:
     username: ${AUTH_APP_USERNAME:app}
-    master-password-bcrypt: ${AUTH_APP_MASTER_PASSWORD_BCRYPT:$2a$10$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG}
+    master-password-bcrypt: ${AUTH_APP_MASTER_PASSWORD_BCRYPT}

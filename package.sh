@@ -6,7 +6,7 @@ BACKEND_DIR="$ROOT_DIR/backend"
 FRONTEND_DIR="$ROOT_DIR/frontend"
 RELEASE_DIR="$ROOT_DIR/release"
 COMPOSE_FILE="$ROOT_DIR/docker-compose.yml"
-ROOT_ENV_EXAMPLE="$ROOT_DIR/.env.example"
+ROOT_ENV_FILE="$ROOT_DIR/.env"
 
 log() {
   printf '[package] %s\n' "$*"
@@ -37,18 +37,16 @@ if [ ! -f "$COMPOSE_FILE" ]; then
   exit 1
 fi
 
-if [ ! -f "$ROOT_ENV_EXAMPLE" ]; then
-  printf '[package] .env.example not found in project root\n' >&2
+if [ ! -f "$ROOT_ENV_FILE" ]; then
+  printf '[package] .env not found in project root\n' >&2
   exit 1
 fi
 
-if [ -f "$ROOT_DIR/.env" ]; then
-  log "load environment from $ROOT_DIR/.env"
-  set -a
-  # shellcheck disable=SC1090
-  . "$ROOT_DIR/.env"
-  set +a
-fi
+log "load environment from $ROOT_ENV_FILE"
+set -a
+# shellcheck disable=SC1090
+. "$ROOT_ENV_FILE"
+set +a
 
 log "clean release directory: $RELEASE_DIR"
 rm -rf "$RELEASE_DIR"
@@ -104,19 +102,15 @@ CMD ["nginx", "-g", "daemon off;"]
 EOF
 
 cp "$COMPOSE_FILE" "$RELEASE_DIR/docker-compose.yml"
-cp "$ROOT_ENV_EXAMPLE" "$RELEASE_DIR/.env.example"
+cp "$ROOT_ENV_FILE" "$RELEASE_DIR/.env"
 
 cat >"$RELEASE_DIR/DEPLOY.md" <<'EOF'
 # Release Deployment
 
 1. Copy this `release` directory to the target host.
-2. Enter the directory and create environment file:
-
-   cp .env.example .env
-
-3. Edit `.env` with production values.
+2. Edit `.env` with production values.
    Backend and frontend image build both read this root `.env` first.
-4. Start with Docker Compose:
+3. Start with Docker Compose:
 
    docker compose up -d --build
 EOF
@@ -127,5 +121,5 @@ log "  $RELEASE_DIR/backend/Dockerfile"
 log "  $RELEASE_DIR/frontend/dist"
 log "  $RELEASE_DIR/frontend/Dockerfile"
 log "  $RELEASE_DIR/docker-compose.yml"
-log "  $RELEASE_DIR/.env.example"
+log "  $RELEASE_DIR/.env"
 log "  $RELEASE_DIR/DEPLOY.md"
