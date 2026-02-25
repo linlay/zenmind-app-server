@@ -223,18 +223,9 @@ public class SecurityConfig {
 
     @Bean
     CommandLineRunner bootstrapData(
-        AppUserService appUserService,
-        OAuthClientService oAuthClientService,
-        AuthProperties authProperties
+        OAuthClientService oAuthClientService
     ) {
-        return args -> {
-            appUserService.ensureBootstrapUser(
-                authProperties.getBootstrapUser().getUsername(),
-                authProperties.getBootstrapUser().getPasswordBcrypt(),
-                authProperties.getBootstrapUser().getDisplayName()
-            );
-            oAuthClientService.ensureBootstrapClient();
-        };
+        return args -> oAuthClientService.ensureBootstrapClient();
     }
 
     @Bean

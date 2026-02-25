@@ -12,7 +12,6 @@ public class AuthProperties {
     private final Admin admin = new Admin();
     private final App app = new App();
     private final Cleanup cleanup = new Cleanup();
-    private final BootstrapUser bootstrapUser = new BootstrapUser();
 
     public String getIssuer() {
         return issuer;
@@ -36,10 +35,6 @@ public class AuthProperties {
 
     public Cleanup getCleanup() {
         return cleanup;
-    }
-
-    public BootstrapUser getBootstrapUser() {
-        return bootstrapUser;
     }
 
     public static class Token {
@@ -147,36 +142,6 @@ public class AuthProperties {
 
         public void setInternalWebhookSecret(String internalWebhookSecret) {
             this.internalWebhookSecret = internalWebhookSecret;
-        }
-    }
-
-    public static class BootstrapUser {
-        private String username;
-        private String passwordBcrypt;
-        private String displayName;
-
-        public String getUsername() {
-            return username;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
-        }
-
-        public String getPasswordBcrypt() {
-            return passwordBcrypt;
-        }
-
-        public void setPasswordBcrypt(String passwordBcrypt) {
-            this.passwordBcrypt = passwordBcrypt;
-        }
-
-        public String getDisplayName() {
-            return displayName;
-        }
-
-        public void setDisplayName(String displayName) {
-            this.displayName = displayName;
         }
     }
 

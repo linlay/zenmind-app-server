@@ -21,7 +21,6 @@ docker compose up --build
 - 必须在 `.env` 中设置：
   - `AUTH_ADMIN_PASSWORD_BCRYPT`
   - `AUTH_APP_MASTER_PASSWORD_BCRYPT`
-- `AUTH_BOOTSTRAP_*` 为可选。若 `AUTH_BOOTSTRAP_PASSWORD_BCRYPT` 留空，则不会自动创建 bootstrap 用户。
 - 下文示例里使用 `password` 仅用于演示，请替换为你的实际密码。
 
 ```bash

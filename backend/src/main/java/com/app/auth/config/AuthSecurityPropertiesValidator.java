@@ -20,15 +20,6 @@ public class AuthSecurityPropertiesValidator {
     void validate() {
         requireBcrypt("AUTH_ADMIN_PASSWORD_BCRYPT", authProperties.getAdmin().getPasswordBcrypt());
         requireBcrypt("AUTH_APP_MASTER_PASSWORD_BCRYPT", authProperties.getApp().getMasterPasswordBcrypt());
-
-        String bootstrapUser = authProperties.getBootstrapUser().getUsername();
-        String bootstrapPassword = authProperties.getBootstrapUser().getPasswordBcrypt();
-        if (StringUtils.hasText(bootstrapUser) || StringUtils.hasText(bootstrapPassword)) {
-            if (!StringUtils.hasText(bootstrapUser)) {
-                throw new IllegalStateException("AUTH_BOOTSTRAP_USER is required when AUTH_BOOTSTRAP_PASSWORD_BCRYPT is set");
-            }
-            requireBcrypt("AUTH_BOOTSTRAP_PASSWORD_BCRYPT", bootstrapPassword);
-        }
     }
 
     private static void requireBcrypt(String key, String value) {

@@ -28,10 +28,7 @@ import org.springframework.test.web.servlet.MvcResult;
 @SpringBootTest(properties = {
     "AUTH_DB_PATH=./target/test-auth.db",
     "AUTH_ADMIN_PASSWORD_BCRYPT=$2a$10$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG",
-    "AUTH_APP_MASTER_PASSWORD_BCRYPT=$2a$10$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG",
-    "AUTH_BOOTSTRAP_USER=user",
-    "AUTH_BOOTSTRAP_PASSWORD_BCRYPT=$2a$10$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG",
-    "AUTH_BOOTSTRAP_DISPLAY=Default User"
+    "AUTH_APP_MASTER_PASSWORD_BCRYPT=$2a$10$iRKcZMdyuNZ9SkqqmufY7eZ9MGLaYILiYlTaqrUDiFStJFNljYBdG"
 })
 @AutoConfigureMockMvc
 class AppAuthInboxIntegrationTests {

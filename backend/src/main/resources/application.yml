@@ -32,10 +32,6 @@ auth:
   cleanup:
     retention: ${AUTH_CLEANUP_RETENTION:PT24H}
     cron: ${AUTH_CLEANUP_CRON:0 0 * * * *}
-  bootstrap-user:
-    username: ${AUTH_BOOTSTRAP_USER:}
-    password-bcrypt: ${AUTH_BOOTSTRAP_PASSWORD_BCRYPT:}
-    display-name: ${AUTH_BOOTSTRAP_DISPLAY:}
 
 logging:
   level:

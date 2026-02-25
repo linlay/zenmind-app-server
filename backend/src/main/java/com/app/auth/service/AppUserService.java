@@ -149,37 +149,6 @@ public class AppUserService {
         evictUsernameCache(current.username());
     }
 
-    public void ensureBootstrapUser(String username, String passwordBcrypt, String displayName) {
-        if (!StringUtils.hasText(username) || !StringUtils.hasText(passwordBcrypt)) {
-            return;
-        }
-
-        Integer count = jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM APP_USER_ WHERE USERNAME_ = ?",
-            Integer.class,
-            username
-        );
-
-        if (count != null && count > 0) {
-            return;
-        }
-
-        Instant now = Instant.now();
-        jdbcTemplate.update(
-            """
-                INSERT INTO APP_USER_ (USER_ID_, USERNAME_, PASSWORD_BCRYPT_, DISPLAY_NAME_, STATUS_, CREATE_AT_, UPDATE_AT_)
-                VALUES (?, ?, ?, ?, 'ACTIVE', ?, ?)
-            """,
-            UUID.randomUUID().toString(),
-            username,
-            passwordBcrypt,
-            StringUtils.hasText(displayName) ? displayName : username,
-            Timestamp.from(now),
-            Timestamp.from(now)
-        );
-        evictUsernameCache(username);
-    }
-
     @CacheEvict(cacheNames = CacheConfig.USER_BY_USERNAME, key = "#username")
     public void evictUsernameCache(String username) {
         // Cache eviction via annotation.
