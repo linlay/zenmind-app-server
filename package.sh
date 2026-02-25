@@ -12,6 +12,25 @@ log() {
   printf '[package] %s\n' "$*"
 }
 
+validate_env_file() {
+  local key line value
+  for key in AUTH_ADMIN_PASSWORD_BCRYPT AUTH_APP_MASTER_PASSWORD_BCRYPT; do
+    line="$(grep -E "^${key}=" "$ROOT_ENV_FILE" | tail -n 1 || true)"
+    if [ -z "$line" ]; then
+      continue
+    fi
+    value="${line#*=}"
+    case "$value" in
+      \$2*)
+        printf '[package] invalid %s in %s\n' "$key" "$ROOT_ENV_FILE" >&2
+        printf '[package] bcrypt values containing `$` must be quoted or escaped in shell env files.\n' >&2
+        printf "[package] fix example: %s='\\$2a\\$10\\$...'\n" "$key" >&2
+        exit 1
+        ;;
+    esac
+  done
+}
+
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     printf '[package] missing required command: %s\n' "$1" >&2
@@ -43,6 +62,7 @@ if [ ! -f "$ROOT_ENV_FILE" ]; then
 fi
 
 log "load environment from $ROOT_ENV_FILE"
+validate_env_file
 set -a
 # shellcheck disable=SC1090
 . "$ROOT_ENV_FILE"
