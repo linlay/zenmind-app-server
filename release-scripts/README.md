@@ -9,3 +9,5 @@ Current scripts:
 
 - `mac/package.sh`
 - `mac/manage-jwk-key.sh`
+- `mac/setup-jwk-public-key.sh`
+- `windows/setup-jwk-public-key.ps1`

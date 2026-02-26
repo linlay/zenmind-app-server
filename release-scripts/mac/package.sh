@@ -10,6 +10,8 @@ COMPOSE_FILE="$ROOT_DIR/docker-compose.yml"
 ROOT_ENV_FILE="$ROOT_DIR/.env"
 ROOT_ENV_EXAMPLE_FILE="$ROOT_DIR/.env.example"
 MANAGE_JWK_SCRIPT="$ROOT_DIR/release-scripts/mac/manage-jwk-key.sh"
+SETUP_JWK_SCRIPT="$ROOT_DIR/release-scripts/mac/setup-jwk-public-key.sh"
+SETUP_JWK_WINDOWS_SCRIPT="$ROOT_DIR/release-scripts/windows/setup-jwk-public-key.ps1"
 BUILD_ENV_FILE=""
 
 log() {
@@ -71,6 +73,16 @@ if [ ! -f "$MANAGE_JWK_SCRIPT" ]; then
   exit 1
 fi
 
+if [ ! -f "$SETUP_JWK_SCRIPT" ]; then
+  printf '[package] release-scripts/mac/setup-jwk-public-key.sh not found in project root\n' >&2
+  exit 1
+fi
+
+if [ ! -f "$SETUP_JWK_WINDOWS_SCRIPT" ]; then
+  printf '[package] release-scripts/windows/setup-jwk-public-key.ps1 not found in project root\n' >&2
+  exit 1
+fi
+
 if [ -f "$ROOT_ENV_FILE" ]; then
   BUILD_ENV_FILE="$ROOT_ENV_FILE"
 else
@@ -86,7 +98,7 @@ set +a
 
 log "clean release directory: $RELEASE_DIR"
 rm -rf "$RELEASE_DIR"
-mkdir -p "$RELEASE_DIR/backend" "$RELEASE_DIR/frontend" "$RELEASE_DIR/release-scripts/mac"
+mkdir -p "$RELEASE_DIR/backend" "$RELEASE_DIR/frontend" "$RELEASE_DIR/release-scripts/mac" "$RELEASE_DIR/release-scripts/windows"
 
 log "build backend jar"
 (
@@ -140,6 +152,9 @@ DOCKER_FRONTEND_EOF
 cp "$COMPOSE_FILE" "$RELEASE_DIR/docker-compose.yml"
 cp "$MANAGE_JWK_SCRIPT" "$RELEASE_DIR/release-scripts/mac/manage-jwk-key.sh"
 chmod +x "$RELEASE_DIR/release-scripts/mac/manage-jwk-key.sh"
+cp "$SETUP_JWK_SCRIPT" "$RELEASE_DIR/release-scripts/mac/setup-jwk-public-key.sh"
+chmod +x "$RELEASE_DIR/release-scripts/mac/setup-jwk-public-key.sh"
+cp "$SETUP_JWK_WINDOWS_SCRIPT" "$RELEASE_DIR/release-scripts/windows/setup-jwk-public-key.ps1"
 
 cat >"$RELEASE_DIR/DEPLOY.md" <<'DEPLOY_EOF'
 # Release Deployment
@@ -150,7 +165,14 @@ cat >"$RELEASE_DIR/DEPLOY.md" <<'DEPLOY_EOF'
 
    ./release-scripts/mac/manage-jwk-key.sh --mode bootstrap --db ./data/auth.db --out ./data/keys
 
-4. Start with Docker Compose:
+4. Export dedicated public key file for downstream projects (optional):
+
+   ./release-scripts/mac/setup-jwk-public-key.sh --db ./data/auth.db --out ./data/keys --public-out ./data/keys/publicKey.pem
+
+   # Windows PowerShell
+   .\release-scripts\windows\setup-jwk-public-key.ps1 -Mode bootstrap -DbPath .\data\auth.db -OutDir .\data\keys -PublicOut .\data\keys\publicKey.pem
+
+5. Start with Docker Compose:
 
    docker compose up -d --build
 DEPLOY_EOF
@@ -162,4 +184,6 @@ log "  $RELEASE_DIR/frontend/dist"
 log "  $RELEASE_DIR/frontend/Dockerfile"
 log "  $RELEASE_DIR/docker-compose.yml"
 log "  $RELEASE_DIR/release-scripts/mac/manage-jwk-key.sh"
+log "  $RELEASE_DIR/release-scripts/mac/setup-jwk-public-key.sh"
+log "  $RELEASE_DIR/release-scripts/windows/setup-jwk-public-key.ps1"
 log "  $RELEASE_DIR/DEPLOY.md"

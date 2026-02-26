@@ -88,6 +88,41 @@ htpasswd -nbBC 10 '' 'your-password' | cut -d: -f2
 
 注意：`rotate` 会导致旧 access token 验签失败，建议在维护窗口执行。
 
+## 5.2 安装脚本里同步 publicKey 到其他项目
+
+项目内置脚本：
+
+- macOS / Linux: `release-scripts/mac/setup-jwk-public-key.sh`
+- Windows: `release-scripts/windows/setup-jwk-public-key.ps1`
+
+功能：
+
+- 先执行 `manage-jwk-key.sh`（`bootstrap` 或 `rotate`）
+- 导出 `jwk-public.pem` / `jwk-private.pem`
+- 额外导出一个 `publicKey` 文件（默认：`<out>/publicKey.pem`），供其他项目直接读取或分发
+
+示例（建议在你的独立 setup 脚本里调用）：
+
+```bash
+./release-scripts/mac/setup-jwk-public-key.sh \
+  --mode bootstrap \
+  --db ./data/auth.db \
+  --out ./data/keys
+```
+
+```powershell
+.\release-scripts\windows\setup-jwk-public-key.ps1 `
+  -Mode bootstrap `
+  -DbPath .\data\auth.db `
+  -OutDir .\data\keys
+```
+
+执行后产物：
+
+- `./data/keys/jwk-public.pem`
+- `./data/keys/jwk-private.pem`
+- `./data/keys/publicKey.pem`（等同公钥副本，给其他项目使用）
+
 ## 6. curl 验证（可直接复制）
 
 > 以下命令默认在 macOS / Linux 下执行。
