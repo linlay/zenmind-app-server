@@ -13,12 +13,17 @@
 docker compose up --build
 ```
 
-请在项目根目录准备 `.env`，`docker-compose.yml`、`package.sh`、前端 Vite 配置都读取根目录 `.env`。
+`package.sh` 构建时要求项目根目录存在 `.env.example`。
+
+- 若存在 `.env`：优先加载 `.env` 作为构建变量。
+- 若不存在 `.env`：回退加载 `.env.example`。
+
+运行时 `release/.env` 由安装流程（setup）或运维提供，`package.sh` 不负责写入运行时 env。
 
 ## 3. 账号与密码配置
 
 - 不再内置默认密码。
-- 必须在 `.env` 中设置：
+- 部署运行时必须在 `release/.env` 中设置：
   - `AUTH_ADMIN_PASSWORD_BCRYPT`
   - `AUTH_APP_MASTER_PASSWORD_BCRYPT`
 - 下文示例里使用 `password` 仅用于演示，请替换为你的实际密码。
@@ -48,6 +53,29 @@ htpasswd -nbBC 10 '' 'your-password' | cut -d: -f2
   - 用于 `/api/app/internal/chat-events` 的 HMAC-SHA256 签名校验。
 - `AUTH_TOKEN_ACCESS_TTL` / `AUTH_TOKEN_REFRESH_TTL` / `AUTH_TOKEN_ROTATE_REFRESH_TOKEN`
   - 控制 OAuth2 客户端 access token / refresh token 生命周期与是否轮换 refresh token。
+
+## 5.1 JWK 密钥脚本（部署建议）
+
+项目内置脚本：`scripts/manage-jwk-key.sh`
+
+- 首次安装（推荐）：若库里无密钥则生成；若已有则导出
+
+```bash
+./scripts/manage-jwk-key.sh --mode bootstrap --db ./data/auth.db --out ./data/keys
+```
+
+- 强制轮换（生成新私钥并覆盖库中旧密钥）
+
+```bash
+./scripts/manage-jwk-key.sh --mode rotate --db ./data/auth.db --out ./data/keys
+```
+
+产物：
+
+- 公钥：`./data/keys/jwk-public.pem`（可给其他项目验签）
+- 私钥：`./data/keys/jwk-private.pem`
+
+注意：`rotate` 会导致旧 access token 验签失败，建议在维护窗口执行。
 
 ## 6. curl 验证（可直接复制）
 

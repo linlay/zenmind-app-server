@@ -7,22 +7,25 @@ FRONTEND_DIR="$ROOT_DIR/frontend"
 RELEASE_DIR="$ROOT_DIR/release"
 COMPOSE_FILE="$ROOT_DIR/docker-compose.yml"
 ROOT_ENV_FILE="$ROOT_DIR/.env"
+ROOT_ENV_EXAMPLE_FILE="$ROOT_DIR/.env.example"
+BUILD_ENV_FILE=""
 
 log() {
   printf '[package] %s\n' "$*"
 }
 
 validate_env_file() {
+  local env_file="$1"
   local key line value
   for key in AUTH_ADMIN_PASSWORD_BCRYPT AUTH_APP_MASTER_PASSWORD_BCRYPT; do
-    line="$(grep -E "^${key}=" "$ROOT_ENV_FILE" | tail -n 1 || true)"
+    line="$(grep -E "^${key}=" "$env_file" | tail -n 1 || true)"
     if [ -z "$line" ]; then
       continue
     fi
     value="${line#*=}"
     case "$value" in
       \$2*)
-        printf '[package] invalid %s in %s\n' "$key" "$ROOT_ENV_FILE" >&2
+        printf '[package] invalid %s in %s\n' "$key" "$env_file" >&2
         printf '[package] bcrypt values containing `$` must be quoted or escaped in shell env files.\n' >&2
         printf "[package] fix example: %s='\\$2a\\$10\\$...'\n" "$key" >&2
         exit 1
@@ -56,21 +59,32 @@ if [ ! -f "$COMPOSE_FILE" ]; then
   exit 1
 fi
 
-if [ ! -f "$ROOT_ENV_FILE" ]; then
-  printf '[package] .env not found in project root\n' >&2
+if [ ! -f "$ROOT_ENV_EXAMPLE_FILE" ]; then
+  printf '[package] .env.example not found in project root\n' >&2
   exit 1
 fi
 
-log "load environment from $ROOT_ENV_FILE"
-validate_env_file
+if [ ! -f "$ROOT_DIR/scripts/manage-jwk-key.sh" ]; then
+  printf '[package] scripts/manage-jwk-key.sh not found in project root\n' >&2
+  exit 1
+fi
+
+if [ -f "$ROOT_ENV_FILE" ]; then
+  BUILD_ENV_FILE="$ROOT_ENV_FILE"
+else
+  BUILD_ENV_FILE="$ROOT_ENV_EXAMPLE_FILE"
+fi
+
+log "load build environment from $BUILD_ENV_FILE"
+validate_env_file "$BUILD_ENV_FILE"
 set -a
 # shellcheck disable=SC1090
-. "$ROOT_ENV_FILE"
+. "$BUILD_ENV_FILE"
 set +a
 
 log "clean release directory: $RELEASE_DIR"
 rm -rf "$RELEASE_DIR"
-mkdir -p "$RELEASE_DIR/backend" "$RELEASE_DIR/frontend"
+mkdir -p "$RELEASE_DIR/backend" "$RELEASE_DIR/frontend" "$RELEASE_DIR/scripts"
 
 log "build backend jar"
 (
@@ -86,7 +100,7 @@ fi
 
 cp "$BACKEND_JAR" "$RELEASE_DIR/backend/app.jar"
 
-cat >"$RELEASE_DIR/backend/Dockerfile" <<'EOF'
+cat >"$RELEASE_DIR/backend/Dockerfile" <<'DOCKER_BACKEND_EOF'
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 RUN mkdir -p /data
@@ -94,7 +108,7 @@ COPY app.jar /app/app.jar
 EXPOSE 8080
 ENV AUTH_DB_PATH=/data/auth.db
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
-EOF
+DOCKER_BACKEND_EOF
 
 log "build frontend dist"
 (
@@ -113,27 +127,31 @@ fi
 cp -R "$FRONTEND_DIR/dist" "$RELEASE_DIR/frontend/dist"
 cp "$FRONTEND_DIR/nginx.conf" "$RELEASE_DIR/frontend/nginx.conf"
 
-cat >"$RELEASE_DIR/frontend/Dockerfile" <<'EOF'
+cat >"$RELEASE_DIR/frontend/Dockerfile" <<'DOCKER_FRONTEND_EOF'
 FROM nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY dist /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
-EOF
+DOCKER_FRONTEND_EOF
 
 cp "$COMPOSE_FILE" "$RELEASE_DIR/docker-compose.yml"
-cp "$ROOT_ENV_FILE" "$RELEASE_DIR/.env"
+cp "$ROOT_DIR/scripts/manage-jwk-key.sh" "$RELEASE_DIR/scripts/manage-jwk-key.sh"
+chmod +x "$RELEASE_DIR/scripts/manage-jwk-key.sh"
 
-cat >"$RELEASE_DIR/DEPLOY.md" <<'EOF'
+cat >"$RELEASE_DIR/DEPLOY.md" <<'DEPLOY_EOF'
 # Release Deployment
 
 1. Copy this `release` directory to the target host.
-2. Edit `.env` with production values.
-   Backend and frontend image build both read this root `.env` first.
-3. Start with Docker Compose:
+2. Prepare a runtime `.env` in the release root (`./.env`) with production values.
+3. Generate/export JWK key pair before first startup:
+
+   ./scripts/manage-jwk-key.sh --mode bootstrap --db ./data/auth.db --out ./data/keys
+
+4. Start with Docker Compose:
 
    docker compose up -d --build
-EOF
+DEPLOY_EOF
 
 log "release package generated:"
 log "  $RELEASE_DIR/backend/app.jar"
@@ -141,5 +159,5 @@ log "  $RELEASE_DIR/backend/Dockerfile"
 log "  $RELEASE_DIR/frontend/dist"
 log "  $RELEASE_DIR/frontend/Dockerfile"
 log "  $RELEASE_DIR/docker-compose.yml"
-log "  $RELEASE_DIR/.env"
+log "  $RELEASE_DIR/scripts/manage-jwk-key.sh"
 log "  $RELEASE_DIR/DEPLOY.md"
