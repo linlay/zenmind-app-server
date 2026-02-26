@@ -243,3 +243,13 @@
 - 必填：
   - `AUTH_ADMIN_PASSWORD_BCRYPT`
   - `AUTH_APP_MASTER_PASSWORD_BCRYPT`
+
+## 5. 脚本目录规范
+
+- 脚本统一放在 `release-scripts/` 下，按操作系统拆分：
+  - `release-scripts/mac/`：`*.sh`
+  - `release-scripts/windows/`：`*.ps1`、`*.bat`
+- 构建脚本入口：
+  - `./release-scripts/mac/package.sh`
+- JWK 管理脚本入口：
+  - `./release-scripts/mac/manage-jwk-key.sh --mode bootstrap --db ./data/auth.db --out ./data/keys`

@@ -13,12 +13,23 @@
 docker compose up --build
 ```
 
-`package.sh` 构建时要求项目根目录存在 `.env.example`。
+`release-scripts/mac/package.sh` 构建时要求项目根目录存在 `.env.example`。
 
 - 若存在 `.env`：优先加载 `.env` 作为构建变量。
 - 若不存在 `.env`：回退加载 `.env.example`。
 
-运行时 `release/.env` 由安装流程（setup）或运维提供，`package.sh` 不负责写入运行时 env。
+运行时 `release/.env` 由安装流程（setup）或运维提供，`release-scripts/mac/package.sh` 不负责写入运行时 env。
+
+### 2.1 脚本目录约定
+
+- `release-scripts/mac/`：macOS / Linux 使用的 shell 脚本（`.sh`）
+- `release-scripts/windows/`：Windows 使用的脚本目录（`.ps1` / `.bat`）
+
+构建命令：
+
+```bash
+./release-scripts/mac/package.sh
+```
 
 ## 3. 账号与密码配置
 
@@ -56,18 +67,18 @@ htpasswd -nbBC 10 '' 'your-password' | cut -d: -f2
 
 ## 5.1 JWK 密钥脚本（部署建议）
 
-项目内置脚本：`scripts/manage-jwk-key.sh`
+项目内置脚本：`release-scripts/mac/manage-jwk-key.sh`
 
 - 首次安装（推荐）：若库里无密钥则生成；若已有则导出
 
 ```bash
-./scripts/manage-jwk-key.sh --mode bootstrap --db ./data/auth.db --out ./data/keys
+./release-scripts/mac/manage-jwk-key.sh --mode bootstrap --db ./data/auth.db --out ./data/keys
 ```
 
 - 强制轮换（生成新私钥并覆盖库中旧密钥）
 
 ```bash
-./scripts/manage-jwk-key.sh --mode rotate --db ./data/auth.db --out ./data/keys
+./release-scripts/mac/manage-jwk-key.sh --mode rotate --db ./data/auth.db --out ./data/keys
 ```
 
 产物：

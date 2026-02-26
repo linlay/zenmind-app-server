@@ -9,15 +9,15 @@ KEY_ID="${JWK_KEY_ID:-}"
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/manage-jwk-key.sh [--mode bootstrap|rotate] [--db <sqlite_db_path>] [--out <output_dir>] [--key-id <kid>]
+  ./release-scripts/mac/manage-jwk-key.sh [--mode bootstrap|rotate] [--db <sqlite_db_path>] [--out <output_dir>] [--key-id <kid>]
 
 Modes:
   bootstrap  Create key pair only when JWK_KEY_ has no row. If key already exists, export existing pair.
   rotate     Replace all rows in JWK_KEY_ with a newly generated key pair.
 
 Examples:
-  ./scripts/manage-jwk-key.sh --mode bootstrap --db ./data/auth.db --out ./data/keys
-  ./scripts/manage-jwk-key.sh --mode rotate --db ./data/auth.db --out ./data/keys
+  ./release-scripts/mac/manage-jwk-key.sh --mode bootstrap --db ./data/auth.db --out ./data/keys
+  ./release-scripts/mac/manage-jwk-key.sh --mode rotate --db ./data/auth.db --out ./data/keys
 EOF
 }
 

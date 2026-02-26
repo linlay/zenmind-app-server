@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BACKEND_DIR="$ROOT_DIR/backend"
 FRONTEND_DIR="$ROOT_DIR/frontend"
 RELEASE_DIR="$ROOT_DIR/release"
 COMPOSE_FILE="$ROOT_DIR/docker-compose.yml"
 ROOT_ENV_FILE="$ROOT_DIR/.env"
 ROOT_ENV_EXAMPLE_FILE="$ROOT_DIR/.env.example"
+MANAGE_JWK_SCRIPT="$ROOT_DIR/release-scripts/mac/manage-jwk-key.sh"
 BUILD_ENV_FILE=""
 
 log() {
@@ -64,8 +66,8 @@ if [ ! -f "$ROOT_ENV_EXAMPLE_FILE" ]; then
   exit 1
 fi
 
-if [ ! -f "$ROOT_DIR/scripts/manage-jwk-key.sh" ]; then
-  printf '[package] scripts/manage-jwk-key.sh not found in project root\n' >&2
+if [ ! -f "$MANAGE_JWK_SCRIPT" ]; then
+  printf '[package] release-scripts/mac/manage-jwk-key.sh not found in project root\n' >&2
   exit 1
 fi
 
@@ -84,7 +86,7 @@ set +a
 
 log "clean release directory: $RELEASE_DIR"
 rm -rf "$RELEASE_DIR"
-mkdir -p "$RELEASE_DIR/backend" "$RELEASE_DIR/frontend" "$RELEASE_DIR/scripts"
+mkdir -p "$RELEASE_DIR/backend" "$RELEASE_DIR/frontend" "$RELEASE_DIR/release-scripts/mac"
 
 log "build backend jar"
 (
@@ -136,8 +138,8 @@ CMD ["nginx", "-g", "daemon off;"]
 DOCKER_FRONTEND_EOF
 
 cp "$COMPOSE_FILE" "$RELEASE_DIR/docker-compose.yml"
-cp "$ROOT_DIR/scripts/manage-jwk-key.sh" "$RELEASE_DIR/scripts/manage-jwk-key.sh"
-chmod +x "$RELEASE_DIR/scripts/manage-jwk-key.sh"
+cp "$MANAGE_JWK_SCRIPT" "$RELEASE_DIR/release-scripts/mac/manage-jwk-key.sh"
+chmod +x "$RELEASE_DIR/release-scripts/mac/manage-jwk-key.sh"
 
 cat >"$RELEASE_DIR/DEPLOY.md" <<'DEPLOY_EOF'
 # Release Deployment
@@ -146,7 +148,7 @@ cat >"$RELEASE_DIR/DEPLOY.md" <<'DEPLOY_EOF'
 2. Prepare a runtime `.env` in the release root (`./.env`) with production values.
 3. Generate/export JWK key pair before first startup:
 
-   ./scripts/manage-jwk-key.sh --mode bootstrap --db ./data/auth.db --out ./data/keys
+   ./release-scripts/mac/manage-jwk-key.sh --mode bootstrap --db ./data/auth.db --out ./data/keys
 
 4. Start with Docker Compose:
 
@@ -159,5 +161,5 @@ log "  $RELEASE_DIR/backend/Dockerfile"
 log "  $RELEASE_DIR/frontend/dist"
 log "  $RELEASE_DIR/frontend/Dockerfile"
 log "  $RELEASE_DIR/docker-compose.yml"
-log "  $RELEASE_DIR/scripts/manage-jwk-key.sh"
+log "  $RELEASE_DIR/release-scripts/mac/manage-jwk-key.sh"
 log "  $RELEASE_DIR/DEPLOY.md"

@@ -1,17 +1,26 @@
+# OS / local metadata
 .DS_Store
 AGENTS.md
+
+# local env files
 .env
 !.env.example
+
+# backend build outputs
 backend/target/
 backend/.mvn/
 
+# frontend build outputs
 frontend/node_modules/
 frontend/dist/
 frontend/.env.local
 frontend/.env.*.local
 
+# logs
 *.log
+release-scripts/**/*.log
 
+# release artifacts
 release/
 
 # runtime sqlite data
