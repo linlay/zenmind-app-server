@@ -92,7 +92,7 @@ public class AuthProperties {
         private String username = "app";
         private String masterPasswordBcrypt;
         private Duration accessTtl = Duration.ofMinutes(10);
-        private Duration maxAccessTtl = Duration.ofHours(12);
+        private Duration maxAccessTtl = Duration.ofDays(30);
         private boolean rotateDeviceToken = true;
         private String internalWebhookSecret = "change-me";
 

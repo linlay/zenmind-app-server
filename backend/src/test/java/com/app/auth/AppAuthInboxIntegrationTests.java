@@ -174,7 +174,7 @@ class AppAuthInboxIntegrationTests {
                     {
                       "masterPassword":"password",
                       "deviceName":"iPad Pro",
-                      "accessTtlSeconds":50000
+                      "accessTtlSeconds":2592001
                     }
                 """))
             .andExpect(status().isBadRequest())

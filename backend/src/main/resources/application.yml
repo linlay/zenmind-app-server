@@ -2,6 +2,8 @@ server:
   port: 8080
 
 spring:
+  config:
+    import: optional:file:../.env[.properties],optional:file:.env[.properties]
   datasource:
     driver-class-name: org.sqlite.JDBC
     url: jdbc:sqlite:${AUTH_DB_PATH:../data/auth.db}
@@ -26,7 +28,7 @@ auth:
     username: ${AUTH_APP_USERNAME:app}
     master-password-bcrypt: ${AUTH_APP_MASTER_PASSWORD_BCRYPT}
     access-ttl: ${AUTH_APP_ACCESS_TTL:PT10M}
-    max-access-ttl: ${AUTH_APP_MAX_ACCESS_TTL:PT12H}
+    max-access-ttl: ${AUTH_APP_MAX_ACCESS_TTL:P30D}
     rotate-device-token: ${AUTH_APP_ROTATE_DEVICE_TOKEN:true}
     internal-webhook-secret: ${AUTH_APP_INTERNAL_WEBHOOK_SECRET:change-me}
   cleanup:

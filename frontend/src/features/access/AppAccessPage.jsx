@@ -13,12 +13,17 @@ import { toast } from '../../shared/ui/toast';
 
 const initialTokenFilter = {
   sources: 'APP_ACCESS,OAUTH_ACCESS,OAUTH_REFRESH',
-  status: 'ALL',
+  status: 'ACTIVE',
   limit: 100
 };
 
-const DEVICE_PAGE_SIZE = 10;
-const TOKEN_PAGE_SIZE = 20;
+const initialDeviceFilter = {
+  status: 'ALL',
+  keyword: ''
+};
+
+const DEVICE_PAGE_SIZE = 5;
+const TOKEN_PAGE_SIZE = 10;
 
 function toneByStatus(status) {
   if (status === 'ACTIVE') return 'success';
@@ -34,6 +39,7 @@ export function AppAccessPage() {
 
   const [devices, setDevices] = useState([]);
   const [tokens, setTokens] = useState([]);
+  const [deviceFilter, setDeviceFilter] = useState(initialDeviceFilter);
   const [tokenFilter, setTokenFilter] = useState(initialTokenFilter);
   const [devicePage, setDevicePage] = useState(1);
   const [tokenPage, setTokenPage] = useState(1);
@@ -183,11 +189,28 @@ export function AppAccessPage() {
     { key: 'actions', title: 'Actions', render: (item) => <Button variant="secondary" onClick={() => copyText(item.token)}>Copy</Button> }
   ], []);
 
-  const deviceTotalPages = Math.max(1, Math.ceil(devices.length / DEVICE_PAGE_SIZE));
+  const filteredDevices = useMemo(() => {
+    const keyword = deviceFilter.keyword.trim().toLowerCase();
+    return devices.filter((device) => {
+      const statusMatch = deviceFilter.status === 'ALL' ? true : device.status === deviceFilter.status;
+      if (!statusMatch) {
+        return false;
+      }
+      if (!keyword) {
+        return true;
+      }
+      return (
+        String(device.deviceId || '').toLowerCase().includes(keyword)
+        || String(device.deviceName || '').toLowerCase().includes(keyword)
+      );
+    });
+  }, [deviceFilter, devices]);
+
+  const deviceTotalPages = Math.max(1, Math.ceil(filteredDevices.length / DEVICE_PAGE_SIZE));
   const tokenTotalPages = Math.max(1, Math.ceil(tokens.length / TOKEN_PAGE_SIZE));
   const currentDevicePage = Math.min(devicePage, deviceTotalPages);
   const currentTokenPage = Math.min(tokenPage, tokenTotalPages);
-  const pagedDevices = devices.slice(
+  const pagedDevices = filteredDevices.slice(
     (currentDevicePage - 1) * DEVICE_PAGE_SIZE,
     currentDevicePage * DEVICE_PAGE_SIZE
   );
@@ -202,19 +225,49 @@ export function AppAccessPage() {
         <LoadingOverlay show={loading} label="Loading app access data..." />
         {error ? <div className="error">{error}</div> : null}
         {success ? <div className="success">{success}</div> : null}
+        <p className="muted compact-paragraph">
+          App Devices tracks where app tokens are currently active. Token Audit keeps issued/revoked token history for troubleshooting and incident review.
+        </p>
       </PageCard>
 
       <PageCard title="App Devices" actions={<Button variant="ghost" onClick={refreshDevices} loading={refreshingDevices}>Refresh</Button>}>
+        <div className="row row-2">
+          <div>
+            <label>Device Status</label>
+            <select
+              value={deviceFilter.status}
+              onChange={(event) => {
+                setDeviceFilter((prev) => ({ ...prev, status: event.target.value }));
+                setDevicePage(1);
+              }}
+            >
+              <option value="ALL">ALL</option>
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="REVOKED">REVOKED</option>
+            </select>
+          </div>
+          <div>
+            <label>Device Search</label>
+            <input
+              value={deviceFilter.keyword}
+              placeholder="Search by device name or ID"
+              onChange={(event) => {
+                setDeviceFilter((prev) => ({ ...prev, keyword: event.target.value }));
+                setDevicePage(1);
+              }}
+            />
+          </div>
+        </div>
         <DataTable
           columns={deviceColumns}
           rows={pagedDevices}
           rowKey={(device) => device.deviceId}
           empty={<EmptyState title="No devices" description="Issue an app token to create a device." />}
         />
-        {devices.length ? (
+        {filteredDevices.length ? (
           <div className="table-pagination">
             <small className="muted">
-              Showing {(currentDevicePage - 1) * DEVICE_PAGE_SIZE + 1}-{Math.min(currentDevicePage * DEVICE_PAGE_SIZE, devices.length)} of {devices.length}
+              Showing {(currentDevicePage - 1) * DEVICE_PAGE_SIZE + 1}-{Math.min(currentDevicePage * DEVICE_PAGE_SIZE, filteredDevices.length)} of {filteredDevices.length}
             </small>
             <div className="inline-actions">
               <Button
@@ -269,7 +322,7 @@ export function AppAccessPage() {
                 onChange={(event) => setTokenFilter((prev) => ({ ...prev, limit: event.target.value }))}
               />
             </div>
-            <div className="filter-action-cell">
+            <div className="form-action-cell">
               <label className="label-spacer" aria-hidden="true">Action</label>
               <Button type="submit">Apply Filter</Button>
             </div>

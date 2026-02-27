@@ -6,6 +6,7 @@
 
 - Backend: `http://localhost:8080`
 - Frontend(Admin): `http://localhost:8081/admin/`
+  - 默认管理入口页面：`/admin/accounts`（旧 `/admin/users`、`/admin/clients` 会自动跳转）
 
 ## 2. 快速启动
 
@@ -195,7 +196,7 @@ echo "NEW_ACCESS_TOKEN length: ${#NEW_ACCESS_TOKEN}"
 echo "NEW_DEVICE_TOKEN length: ${#NEW_DEVICE_TOKEN}"
 ```
 
-> `accessTtlSeconds` 为可选字段，不传时使用服务端默认值 `AUTH_APP_ACCESS_TTL`（默认 `PT10M`）。可申请的最大值受 `AUTH_APP_MAX_ACCESS_TTL` 限制（默认 `PT12H`）。
+> `accessTtlSeconds` 为可选字段，不传时使用服务端默认值 `AUTH_APP_ACCESS_TTL`（默认 `PT10M`）。可申请的最大值受 `AUTH_APP_MAX_ACCESS_TTL` 限制（默认 `P30D`）。
 
 ### 6.6 管理员登录（拿 Cookie）
 

@@ -6,6 +6,7 @@ import { LoadingOverlay } from '../shared/ui/LoadingOverlay';
 import { ToastViewport } from '../shared/ui/ToastViewport';
 import { toast } from '../shared/ui/toast';
 import { AppLayout } from './layout/AppLayout';
+import { defaultProtectedPath } from './routes';
 
 export default function App() {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ export default function App() {
       <Routes>
         <Route
           path="/login"
-          element={session ? <Navigate to="/users" replace /> : <LoginPage onLogin={setSession} />}
+          element={session ? <Navigate to={defaultProtectedPath} replace /> : <LoginPage onLogin={setSession} />}
         />
         <Route
           path="/*"

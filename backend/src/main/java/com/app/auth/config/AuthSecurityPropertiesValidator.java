@@ -18,8 +18,17 @@ public class AuthSecurityPropertiesValidator {
 
     @PostConstruct
     void validate() {
-        requireBcrypt("AUTH_ADMIN_PASSWORD_BCRYPT", authProperties.getAdmin().getPasswordBcrypt());
-        requireBcrypt("AUTH_APP_MASTER_PASSWORD_BCRYPT", authProperties.getApp().getMasterPasswordBcrypt());
+        String adminUsername = normalizeQuotedValue(authProperties.getAdmin().getUsername());
+        String appUsername = normalizeQuotedValue(authProperties.getApp().getUsername());
+        String adminHash = normalizeQuotedValue(authProperties.getAdmin().getPasswordBcrypt());
+        String appMasterHash = normalizeQuotedValue(authProperties.getApp().getMasterPasswordBcrypt());
+        authProperties.getAdmin().setUsername(adminUsername);
+        authProperties.getApp().setUsername(appUsername);
+        authProperties.getAdmin().setPasswordBcrypt(adminHash);
+        authProperties.getApp().setMasterPasswordBcrypt(appMasterHash);
+
+        requireBcrypt("AUTH_ADMIN_PASSWORD_BCRYPT", adminHash);
+        requireBcrypt("AUTH_APP_MASTER_PASSWORD_BCRYPT", appMasterHash);
     }
 
     private static void requireBcrypt(String key, String value) {
@@ -36,5 +45,20 @@ public class AuthSecurityPropertiesValidator {
 
     private static boolean isUnresolvedPlaceholder(String value) {
         return value.contains("${") && value.contains("}");
+    }
+
+    private static String normalizeQuotedValue(String value) {
+        if (!StringUtils.hasText(value)) {
+            return value;
+        }
+        String trimmed = value.trim();
+        if (trimmed.length() >= 2) {
+            char first = trimmed.charAt(0);
+            char last = trimmed.charAt(trimmed.length() - 1);
+            if ((first == '\'' && last == '\'') || (first == '"' && last == '"')) {
+                return trimmed.substring(1, trimmed.length() - 1);
+            }
+        }
+        return trimmed;
     }
 }

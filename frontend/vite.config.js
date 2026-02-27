@@ -26,14 +26,31 @@ function resolveBackendPort(cwd) {
   return 8080;
 }
 
+function resolveProxyTarget(env, cwd) {
+  const backendPortFromEnv = Number(env.BACKEND_PORT);
+  const backendPort = Number.isNaN(backendPortFromEnv) ? resolveBackendPort(cwd) : backendPortFromEnv;
+  const localFallback = `http://localhost:${backendPort}`;
+  const configured = env.VITE_API_PROXY_TARGET;
+  if (!configured) {
+    return localFallback;
+  }
+
+  const isBackendHost = /:\/\/backend(?::|\/|$)/.test(configured);
+  const runningInContainer = fs.existsSync('/.dockerenv');
+  if (isBackendHost && !runningInContainer) {
+    return localFallback;
+  }
+
+  return configured;
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadRootEnv(mode, process.cwd());
   const base = env.VITE_BASE_PATH || '/admin/';
   const port = Number(env.VITE_DEV_PORT || env.FRONTEND_PORT || 11950);
   const strictPort = (env.VITE_DEV_STRICT_PORT || 'true').toLowerCase() !== 'false';
   const proxyPath = env.VITE_API_PROXY_PATH || '/admin/api';
-  const backendPort = resolveBackendPort(process.cwd());
-  const proxyTarget = env.VITE_API_PROXY_TARGET || `http://localhost:${backendPort}`;
+  const proxyTarget = resolveProxyTarget(env, process.cwd());
 
   return {
     plugins: [react()],

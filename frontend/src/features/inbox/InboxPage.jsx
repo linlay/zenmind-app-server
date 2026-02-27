@@ -5,6 +5,7 @@ import { Button } from '../../shared/ui/Button';
 import { DataTable } from '../../shared/ui/DataTable';
 import { EmptyState } from '../../shared/ui/EmptyState';
 import { LoadingOverlay } from '../../shared/ui/LoadingOverlay';
+import { Modal } from '../../shared/ui/Modal';
 import { PageCard } from '../../shared/ui/PageCard';
 import { toast } from '../../shared/ui/toast';
 
@@ -21,6 +22,8 @@ export function InboxPage() {
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [sendError, setSendError] = useState('');
 
   const loadInbox = async () => {
     setLoading(true);
@@ -48,18 +51,19 @@ export function InboxPage() {
   const sendMessage = async (event) => {
     event.preventDefault();
     setSubmitting(true);
-    setError('');
+    setSendError('');
     try {
       await request('/admin/api/inbox/send', {
         method: 'POST',
         body: JSON.stringify(form)
       });
       setForm(initialForm);
+      setShowSendModal(false);
       toast.success('Message sent to inbox');
       await loadInbox();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to send message';
-      setError(message);
+      setSendError(message);
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -112,8 +116,36 @@ export function InboxPage() {
 
   return (
     <>
-      <PageCard title="Send Inbox Message">
+      <PageCard
+        title="Inbox Messages"
+        actions={(
+          <>
+            <span className="unread-pill">Unread: {unreadCount}</span>
+            <Button onClick={() => setShowSendModal(true)}>Send to Inbox</Button>
+            <Button variant="ghost" onClick={loadInbox}>Refresh</Button>
+            <Button variant="secondary" onClick={markAllRead}>Mark All Read</Button>
+          </>
+        )}
+      >
         {error ? <div className="error">{error}</div> : null}
+        <LoadingOverlay show={loading} label="Loading inbox..." />
+        <DataTable
+          columns={columns}
+          rows={messages}
+          rowKey={(message) => message.messageId}
+          empty={<EmptyState title="Inbox is empty" description="Send a message to see records here." />}
+        />
+      </PageCard>
+
+      <Modal
+        open={showSendModal}
+        title="Send Inbox Message"
+        onClose={() => {
+          setShowSendModal(false);
+          setSendError('');
+        }}
+      >
+        {sendError ? <div className="error">{sendError}</div> : null}
         <form onSubmit={sendMessage}>
           <label>Title</label>
           <input
@@ -138,27 +170,12 @@ export function InboxPage() {
             <option value="SYSTEM">SYSTEM</option>
           </select>
 
-          <Button type="submit" loading={submitting}>Send to Inbox</Button>
+          <div className="modal-footer">
+            <Button variant="ghost" onClick={() => setShowSendModal(false)}>Cancel</Button>
+            <Button type="submit" loading={submitting}>Send to Inbox</Button>
+          </div>
         </form>
-      </PageCard>
-
-      <PageCard
-        title="Inbox Messages"
-        actions={(
-          <>
-            <span className="unread-pill">Unread: {unreadCount}</span>
-            <Button variant="secondary" onClick={markAllRead}>Mark All Read</Button>
-          </>
-        )}
-      >
-        <LoadingOverlay show={loading} label="Loading inbox..." />
-        <DataTable
-          columns={columns}
-          rows={messages}
-          rowKey={(message) => message.messageId}
-          empty={<EmptyState title="Inbox is empty" description="Send a message to see records here." />}
-        />
-      </PageCard>
+      </Modal>
     </>
   );
 }

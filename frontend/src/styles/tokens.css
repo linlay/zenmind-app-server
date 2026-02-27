@@ -1,37 +1,37 @@
 :root {
-  --font-ui: "SF Pro Text", "Avenir Next", "Segoe UI", sans-serif;
-  --text-primary: #1d1d1f;
-  --text-secondary: #525866;
-  --text-muted: #6f7685;
+  --font-ui: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
+  --text-primary: #17233a;
+  --text-secondary: #4e5f7c;
+  --text-muted: #6c7d98;
 
-  --bg-canvas: #f5f6f8;
-  --bg-layer: rgba(255, 255, 255, 0.72);
-  --bg-card: rgba(255, 255, 255, 0.9);
-  --bg-card-solid: #ffffff;
+  --bg-canvas: #edf2fb;
+  --bg-layer: rgba(255, 255, 255, 0.68);
+  --bg-card: rgba(255, 255, 255, 0.82);
+  --bg-card-solid: rgba(248, 252, 255, 0.95);
 
-  --line-soft: #e8eaf0;
-  --line-strong: #d3d8e2;
+  --line-soft: rgba(44, 74, 126, 0.12);
+  --line-strong: rgba(44, 74, 126, 0.22);
 
-  --primary: #0a84ff;
-  --primary-strong: #0066d6;
-  --secondary: #4a5261;
-  --danger: #cf2e2e;
-  --success: #1b8f55;
+  --primary: #1a73e8;
+  --primary-strong: #0f5bc2;
+  --secondary: #5f7393;
+  --danger: #d03b54;
+  --success: #1f8d66;
 
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
+  --radius-sm: 9px;
+  --radius-md: 13px;
+  --radius-lg: 18px;
 
-  --shadow-sm: 0 1px 2px rgba(17, 24, 39, 0.06);
-  --shadow-md: 0 8px 28px rgba(15, 23, 42, 0.08);
+  --shadow-sm: 0 1px 2px rgba(26, 46, 86, 0.1);
+  --shadow-md: 0 12px 30px rgba(26, 46, 86, 0.12);
 
-  --space-1: 8px;
-  --space-2: 12px;
-  --space-3: 16px;
-  --space-4: 24px;
-  --space-5: 32px;
+  --space-1: 6px;
+  --space-2: 10px;
+  --space-3: 14px;
+  --space-4: 18px;
+  --space-5: 24px;
 
-  --motion-fast: 140ms;
-  --motion-base: 200ms;
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
   --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }

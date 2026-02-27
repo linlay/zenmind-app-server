@@ -5,6 +5,7 @@ import { useAsyncAction } from '../../shared/hooks/useAsyncAction';
 import { Button } from '../../shared/ui/Button';
 import { PageCard } from '../../shared/ui/PageCard';
 import { toast } from '../../shared/ui/toast';
+import { defaultProtectedPath } from '../../app/routes';
 
 export function LoginPage({ onLogin }) {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ export function LoginPage({ onLogin }) {
       });
 
       onLogin(session);
-      navigate('/users');
+      navigate(defaultProtectedPath);
       toast.success('Signed in successfully');
     } catch {
       toast.error('Sign in failed');

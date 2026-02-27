@@ -8,16 +8,44 @@ import { LoadingOverlay } from '../../shared/ui/LoadingOverlay';
 import { PageCard } from '../../shared/ui/PageCard';
 import { toast } from '../../shared/ui/toast';
 
-const initialIssueForm = {
+const ACCESS_TTL_MAX_SECONDS = 30 * 24 * 60 * 60;
+const createDefaultAccessTtl = () => ({ days: '0', hours: '0', minutes: '10', seconds: '0' });
+const createInitialIssueForm = () => ({
   masterPassword: 'password',
   deviceName: 'Admin Console Device',
-  accessTtlSeconds: 600
-};
-
-const initialRefreshForm = {
+  accessTtl: createDefaultAccessTtl()
+});
+const createInitialRefreshForm = () => ({
   deviceToken: '',
-  accessTtlSeconds: 600
-};
+  accessTtl: createDefaultAccessTtl()
+});
+
+function normalizePart(value, label) {
+  const text = String(value ?? '').trim();
+  if (!text) {
+    return 0;
+  }
+  if (!/^\d+$/.test(text)) {
+    throw new Error(`${label} must be a non-negative integer`);
+  }
+  return Number(text);
+}
+
+function accessTtlToSeconds(parts) {
+  const days = normalizePart(parts.days, 'Days');
+  const hours = normalizePart(parts.hours, 'Hours');
+  const minutes = normalizePart(parts.minutes, 'Minutes');
+  const seconds = normalizePart(parts.seconds, 'Seconds');
+  const total = days * 86400 + hours * 3600 + minutes * 60 + seconds;
+
+  if (total < 1) {
+    throw new Error('Access TTL must be at least 1 second');
+  }
+  if (total > ACCESS_TTL_MAX_SECONDS) {
+    throw new Error(`Access TTL must be <= ${ACCESS_TTL_MAX_SECONDS} seconds (30 days)`);
+  }
+  return total;
+}
 
 export function SecurityPage() {
   const [error, setError] = useState('');
@@ -25,8 +53,8 @@ export function SecurityPage() {
 
   const [jwks, setJwks] = useState(null);
   const [generatedPublicKey, setGeneratedPublicKey] = useState('');
-  const [issueForm, setIssueForm] = useState(initialIssueForm);
-  const [refreshForm, setRefreshForm] = useState(initialRefreshForm);
+  const [issueForm, setIssueForm] = useState(createInitialIssueForm);
+  const [refreshForm, setRefreshForm] = useState(createInitialRefreshForm);
 
   const [issueResult, setIssueResult] = useState(null);
   const [refreshResult, setRefreshResult] = useState(null);
@@ -81,7 +109,7 @@ export function SecurityPage() {
       const payload = {
         masterPassword: issueForm.masterPassword,
         deviceName: issueForm.deviceName,
-        accessTtlSeconds: issueForm.accessTtlSeconds ? Number(issueForm.accessTtlSeconds) : null
+        accessTtlSeconds: accessTtlToSeconds(issueForm.accessTtl)
       };
       const result = await request('/admin/api/security/app-tokens/issue', {
         method: 'POST',
@@ -106,7 +134,7 @@ export function SecurityPage() {
     try {
       const payload = {
         deviceToken: refreshForm.deviceToken,
-        accessTtlSeconds: refreshForm.accessTtlSeconds ? Number(refreshForm.accessTtlSeconds) : null
+        accessTtlSeconds: accessTtlToSeconds(refreshForm.accessTtl)
       };
       const result = await request('/admin/api/security/app-tokens/refresh', {
         method: 'POST',
@@ -231,20 +259,61 @@ export function SecurityPage() {
             </div>
           </div>
 
-          <div className="row row-2">
+          <div className="row row-5">
             <div>
-              <label>Access TTL Seconds</label>
+              <label>Days</label>
               <input
                 type="number"
-                min="1"
-                value={issueForm.accessTtlSeconds}
-                onChange={(event) => setIssueForm((prev) => ({ ...prev, accessTtlSeconds: event.target.value }))}
+                min="0"
+                value={issueForm.accessTtl.days}
+                onChange={(event) => setIssueForm((prev) => ({
+                  ...prev,
+                  accessTtl: { ...prev.accessTtl, days: event.target.value }
+                }))}
               />
             </div>
-            <div className="align-end">
+            <div>
+              <label>Hours</label>
+              <input
+                type="number"
+                min="0"
+                value={issueForm.accessTtl.hours}
+                onChange={(event) => setIssueForm((prev) => ({
+                  ...prev,
+                  accessTtl: { ...prev.accessTtl, hours: event.target.value }
+                }))}
+              />
+            </div>
+            <div>
+              <label>Minutes</label>
+              <input
+                type="number"
+                min="0"
+                value={issueForm.accessTtl.minutes}
+                onChange={(event) => setIssueForm((prev) => ({
+                  ...prev,
+                  accessTtl: { ...prev.accessTtl, minutes: event.target.value }
+                }))}
+              />
+            </div>
+            <div>
+              <label>Seconds</label>
+              <input
+                type="number"
+                min="0"
+                value={issueForm.accessTtl.seconds}
+                onChange={(event) => setIssueForm((prev) => ({
+                  ...prev,
+                  accessTtl: { ...prev.accessTtl, seconds: event.target.value }
+                }))}
+              />
+            </div>
+            <div className="form-action-cell">
+              <label className="label-spacer" aria-hidden="true">Action</label>
               <Button type="submit">Issue Token</Button>
             </div>
           </div>
+          <small className="muted">Custom TTL supports days/hours/minutes/seconds. Max 30 days.</small>
         </form>
 
         {issueResult ? (
@@ -278,7 +347,7 @@ export function SecurityPage() {
 
       <PageCard title="Refresh App Access Token">
         <form onSubmit={refreshAppToken}>
-          <div className="row row-2">
+          <div className="row row-5">
             <div>
               <label>Device Token</label>
               <input
@@ -288,16 +357,58 @@ export function SecurityPage() {
               />
             </div>
             <div>
-              <label>Access TTL Seconds</label>
+              <label>Days</label>
               <input
                 type="number"
-                min="1"
-                value={refreshForm.accessTtlSeconds}
-                onChange={(event) => setRefreshForm((prev) => ({ ...prev, accessTtlSeconds: event.target.value }))}
+                min="0"
+                value={refreshForm.accessTtl.days}
+                onChange={(event) => setRefreshForm((prev) => ({
+                  ...prev,
+                  accessTtl: { ...prev.accessTtl, days: event.target.value }
+                }))}
+              />
+            </div>
+            <div>
+              <label>Hours</label>
+              <input
+                type="number"
+                min="0"
+                value={refreshForm.accessTtl.hours}
+                onChange={(event) => setRefreshForm((prev) => ({
+                  ...prev,
+                  accessTtl: { ...prev.accessTtl, hours: event.target.value }
+                }))}
+              />
+            </div>
+            <div>
+              <label>Minutes</label>
+              <input
+                type="number"
+                min="0"
+                value={refreshForm.accessTtl.minutes}
+                onChange={(event) => setRefreshForm((prev) => ({
+                  ...prev,
+                  accessTtl: { ...prev.accessTtl, minutes: event.target.value }
+                }))}
+              />
+            </div>
+            <div>
+              <label>Seconds</label>
+              <input
+                type="number"
+                min="0"
+                value={refreshForm.accessTtl.seconds}
+                onChange={(event) => setRefreshForm((prev) => ({
+                  ...prev,
+                  accessTtl: { ...prev.accessTtl, seconds: event.target.value }
+                }))}
               />
             </div>
           </div>
-          <Button type="submit">Refresh Token</Button>
+          <div className="form-action-row">
+            <Button type="submit">Refresh Token</Button>
+          </div>
+          <small className="muted">Custom TTL supports days/hours/minutes/seconds. Max 30 days.</small>
         </form>
 
         {refreshResult ? (

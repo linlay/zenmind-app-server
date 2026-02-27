@@ -1,6 +1,6 @@
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Button } from '../../shared/ui/Button';
-import { protectedRoutes } from '../routes';
+import { defaultProtectedPath, protectedRoutes } from '../routes';
 
 export function AppLayout({ session, onLogout }) {
   const location = useLocation();
@@ -8,7 +8,7 @@ export function AppLayout({ session, onLogout }) {
   return (
     <div className="app-shell">
       <header className="topbar page-transition">
-        <div>
+        <div className="topbar-identity">
           <h2>Auth Admin</h2>
           <small>Signed in as {session.username}</small>
         </div>
@@ -31,7 +31,9 @@ export function AppLayout({ session, onLogout }) {
           {protectedRoutes.map((route) => (
             <Route key={route.path} path={route.path} element={route.element} />
           ))}
-          <Route path="*" element={<Navigate to="/users" replace />} />
+          <Route path="/users" element={<Navigate to={defaultProtectedPath} replace />} />
+          <Route path="/clients" element={<Navigate to={defaultProtectedPath} replace />} />
+          <Route path="*" element={<Navigate to={defaultProtectedPath} replace />} />
         </Routes>
       </main>
     </div>
