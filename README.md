@@ -33,7 +33,12 @@
 cp .env.example .env
 ```
 
-必须确认 `.env` 中以下变量是你自己的值（不能使用示例占位）：
+`.env.example` 提供了可直接启动的开发默认值：
+
+- Admin 登录：`admin / password`
+- App master password：`password`
+
+生产环境必须替换以下变量为你自己的 bcrypt：
 
 - `AUTH_ADMIN_PASSWORD_BCRYPT`
 - `AUTH_APP_MASTER_PASSWORD_BCRYPT`
@@ -45,6 +50,42 @@ cp .env.example .env
 > 说明：默认示例值为 `http://localhost:8080`，若你本地后端跑在 `11952`，建议改成 `11952` 保持 OIDC 元数据一致。
 
 外部配置文件白名单在 `backend/application.yml` 的 `external.editable-files` 中维护；仅白名单内且已存在的文件允许通过管理台修改保存。
+
+### 3.1 生成 bcrypt（macOS / Linux / Windows）
+
+#### 方式 A：服务启动后，通过接口生成（跨平台通用）
+
+macOS / Linux：
+
+```bash
+curl -sS -X POST http://localhost:11952/admin/api/bcrypt/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"password":"MyStrongPassword!123"}'
+```
+
+Windows（PowerShell 7+）：
+
+```powershell
+Invoke-RestMethod -Method Post -Uri "http://localhost:11952/admin/api/bcrypt/generate" `
+  -ContentType "application/json" `
+  -Body '{"password":"MyStrongPassword!123"}'
+```
+
+#### 方式 B：离线本地生成（无需启动服务）
+
+macOS（本机 `htpasswd`，无需 Docker）：
+
+```bash
+htpasswd -nbBC 10 '' 'MyStrongPassword!123' | tr -d ':\n'; echo
+```
+
+```bash
+docker run --rm --entrypoint htpasswd httpd:2.4-alpine -nBC 10 '' 'MyStrongPassword!123' | tr -d ':\n'; echo
+```
+
+说明：命令输出即 bcrypt 哈希（通常是 `$2y$...`，本项目可直接使用）。若在 Linux/Windows（Git Bash/WSL）也可使用同一条 bash 命令。
+
+将输出的 bcrypt 替换到 `.env`，建议用单引号包裹，避免 `$` 被 shell 展开。
 
 ## 4. 快速启动（Docker 一键）
 
@@ -233,6 +274,15 @@ docker image inspect app-auth-frontend-go --format '{{.Size}}'
 - 原因：`.env` 中 bcrypt 不合法，或 `$` 被错误转义。
 - 处理：参考 `.env.example` 的引号写法，确保是完整 bcrypt 字符串。
 
+`invalid admin credentials`
+
+- 原因：用户名不匹配，或输入明文与 `AUTH_ADMIN_PASSWORD_BCRYPT` 不匹配。
+- 处理：
+  - 检查用户名是否为 `AUTH_ADMIN_USERNAME`（默认 `admin`）。
+  - 确认容器实际生效的环境变量（例如 `docker compose exec backend env | rg 'AUTH_ADMIN_USERNAME|AUTH_ADMIN_PASSWORD_BCRYPT'`）。
+  - 用 `POST /admin/api/bcrypt/generate` 重新生成 bcrypt 并替换 `.env`。
+  - 更新 `.env` 后重启服务（`docker compose down && docker compose up -d --build`）。
+
 端口冲突（`11950` / `11952`）
 
 - 原因：已有进程占用。
@@ -247,3 +297,4 @@ docker image inspect app-auth-frontend-go --format '{{.Size}}'
 - `docker-compose.yml`：本地容器编排
 - `API_CONTRACT.md`：接口清单
 - `RELEASE.md`：发布说明（简版）
+# zenmind-app-server-go
