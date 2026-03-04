@@ -1,6 +1,6 @@
 services:
   backend:
-    image: app-auth-backend-go
+    image: zenmind-app-backend-go
     build:
       context: ./backend
     container_name: app-auth-backend-go
@@ -25,7 +25,7 @@ services:
       - "${BACKEND_PORT:-11952}:8080"
 
   frontend:
-    image: app-auth-frontend-go
+    image: zenmind-app-frontend-go
     build:
       context: ./frontend
       args:
