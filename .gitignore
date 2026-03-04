@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+
+# env
+.env
+
+# frontend
+frontend/node_modules
+frontend/dist
+frontend/frontend-gateway
+
+# backend
+backend/app
+backend/coverage.out
+
+# build/release
+release/
+
+# data
+data/*.db
+data/*.db-*
+
+# logs
+*.log

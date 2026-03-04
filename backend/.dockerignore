@@ -1,0 +1,4 @@
+.git
+app
+*.log
+coverage.out

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Consent</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f7fa; margin: 0; display: grid; place-items: center; min-height: 100vh; }
+        .card { width: 460px; background: white; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,.08); padding: 24px; }
+        h1 { margin: 0 0 12px; font-size: 22px; }
+        p { margin: 8px 0 16px; color: #334155; }
+        .scope { display: flex; align-items: center; gap: 8px; padding: 8px 0; }
+        .actions { margin-top: 18px; display: flex; gap: 12px; }
+        button { padding: 10px 14px; border-radius: 8px; border: none; cursor: pointer; }
+        .approve { background: #0e7490; color: #fff; }
+        .deny { background: #dc2626; color: #fff; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>Authorize Access</h1>
+    <p><strong>{{.clientName}}</strong> requests permissions for <strong>{{.principalName}}</strong>.</p>
+
+    <form method="post" action="/openid/consent">
+        <input type="hidden" name="client_id" value="{{.clientId}}" />
+        <input type="hidden" name="state" value="{{.state}}" />
+        <input type="hidden" name="redirect_uri" value="{{.redirectUri}}" />
+        <input type="hidden" name="code_challenge" value="{{.codeChallenge}}" />
+        <input type="hidden" name="code_challenge_method" value="{{.codeChallengeMethod}}" />
+
+        {{range .scopes}}
+        <div class="scope">
+            <input type="checkbox" name="scope" value="{{.}}" checked />
+            <label>{{.}}</label>
+        </div>
+        {{end}}
+
+        <div class="actions">
+            <button class="approve" type="submit" name="consent_action" value="approve">Approve</button>
+            <button class="deny" type="submit" name="consent_action" value="deny">Deny</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

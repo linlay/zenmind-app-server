@@ -1,0 +1,14 @@
+server:
+  port: 11952
+
+auth:
+  admin:
+    username: ${AUTH_ADMIN_USERNAME:admin}
+    password-bcrypt: ${AUTH_ADMIN_PASSWORD_BCRYPT}
+  app:
+    username: ${AUTH_APP_USERNAME:app}
+    master-password-bcrypt: ${AUTH_APP_MASTER_PASSWORD_BCRYPT}
+
+external:
+  editable-files:
+    - ./application.yml
