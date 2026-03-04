@@ -294,17 +294,30 @@ func (s *Server) handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	if strings.TrimSpace(req.Username) == "" || strings.TrimSpace(req.Password) == "" {
+	normalizedUsername := strings.TrimSpace(req.Username)
+	normalizedPassword := strings.TrimSpace(req.Password)
+	if normalizedUsername == "" || normalizedPassword == "" {
 		writeAPIError(w, http.StatusBadRequest, "username and password are required")
 		return
 	}
-	if req.Username != s.cfg.AdminUsername || bcrypt.CompareHashAndPassword([]byte(s.cfg.AdminPasswordBcrypt), []byte(req.Password)) != nil {
+	usernameMatched := normalizedUsername == s.cfg.AdminUsername
+	passwordMatched := bcrypt.CompareHashAndPassword([]byte(s.cfg.AdminPasswordBcrypt), []byte(req.Password)) == nil
+	if !usernameMatched || !passwordMatched {
+		if s.logger != nil {
+			s.logger.Printf(
+				"admin login failed: remote=%s username_match=%t password_match=%t requested_username=%q",
+				r.RemoteAddr,
+				usernameMatched,
+				passwordMatched,
+				normalizedUsername,
+			)
+		}
 		writeAPIError(w, http.StatusBadRequest, "invalid admin credentials")
 		return
 	}
 	sessionID := uuid.NewString()
 	now := time.Now().UTC()
-	session := model.AdminSession{SessionID: sessionID, Username: req.Username, IssuedAt: now}
+	session := model.AdminSession{SessionID: sessionID, Username: s.cfg.AdminUsername, IssuedAt: now}
 	s.adminSessionsMu.Lock()
 	s.adminSessions[sessionID] = session
 	s.adminSessionsMu.Unlock()
