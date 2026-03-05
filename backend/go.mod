@@ -1,4 +1,4 @@
-module zenmind-app-server-go/backend
+module zenmind-app-server/backend
 
 go 1.23.0
 

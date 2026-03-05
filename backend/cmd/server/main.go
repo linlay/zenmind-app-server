@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"zenmind-app-server-go/backend/internal/app"
-	"zenmind-app-server-go/backend/internal/config"
-	"zenmind-app-server-go/backend/internal/db"
-	"zenmind-app-server-go/backend/internal/security"
-	"zenmind-app-server-go/backend/internal/store"
+	"zenmind-app-server/backend/internal/app"
+	"zenmind-app-server/backend/internal/config"
+	"zenmind-app-server/backend/internal/db"
+	"zenmind-app-server/backend/internal/security"
+	"zenmind-app-server/backend/internal/store"
 )
 
 func main() {

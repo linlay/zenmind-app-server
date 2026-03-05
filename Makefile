@@ -16,5 +16,5 @@ down:
 	docker compose down
 
 size-check:
-	@echo "backend image size bytes:" && docker image inspect app-auth-backend-go --format '{{.Size}}'
-	@echo "frontend image size bytes:" && docker image inspect app-auth-frontend-go --format '{{.Size}}'
+	@echo "backend image size bytes:" && docker image inspect app-auth-backend --format '{{.Size}}'
+	@echo "frontend image size bytes:" && docker image inspect app-auth-frontend --format '{{.Size}}'

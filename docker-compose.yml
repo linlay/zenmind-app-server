@@ -1,9 +1,9 @@
 services:
   backend:
-    image: zenmind-app-backend-go
+    image: zenmind-app-backend
     build:
       context: ./backend
-    container_name: app-auth-backend-go
+    container_name: app-auth-backend
     environment:
       AUTH_DB_PATH: ${AUTH_DB_PATH:-/data/auth.db}
       AUTH_ISSUER: ${AUTH_ISSUER:-http://localhost:8080}
@@ -12,7 +12,7 @@ services:
       AUTH_APP_USERNAME: ${AUTH_APP_USERNAME:-app}
       AUTH_APP_MASTER_PASSWORD_BCRYPT: ${AUTH_APP_MASTER_PASSWORD_BCRYPT:?AUTH_APP_MASTER_PASSWORD_BCRYPT is required}
       AUTH_APP_ACCESS_TTL: ${AUTH_APP_ACCESS_TTL:-PT10M}
-      AUTH_APP_MAX_ACCESS_TTL: ${AUTH_APP_MAX_ACCESS_TTL:-PT12H}
+      AUTH_APP_MAX_ACCESS_TTL: ${AUTH_APP_MAX_ACCESS_TTL:-P30D}
       AUTH_APP_ROTATE_DEVICE_TOKEN: ${AUTH_APP_ROTATE_DEVICE_TOKEN:-true}
       AUTH_TOKEN_ACCESS_TTL: ${AUTH_TOKEN_ACCESS_TTL:-PT15M}
       AUTH_TOKEN_REFRESH_TTL: ${AUTH_TOKEN_REFRESH_TTL:-P30D}
@@ -25,7 +25,7 @@ services:
       - "${BACKEND_PORT:-11952}:8080"
 
   frontend:
-    image: zenmind-app-frontend-go
+    image: zenmind-app-frontend
     build:
       context: ./frontend
       args:
@@ -34,7 +34,7 @@ services:
         VITE_DEV_STRICT_PORT: ${VITE_DEV_STRICT_PORT:-true}
         VITE_API_PROXY_PATH: ${VITE_API_PROXY_PATH:-/admin/api}
         VITE_API_PROXY_TARGET: ${VITE_API_PROXY_TARGET:-http://backend:8080}
-    container_name: app-auth-frontend-go
+    container_name: app-auth-frontend
     depends_on:
       - backend
     ports:

@@ -27,11 +27,11 @@ import (
 	"github.com/robfig/cron/v3"
 	"golang.org/x/crypto/bcrypt"
 
-	"zenmind-app-server-go/backend/internal/config"
-	"zenmind-app-server-go/backend/internal/configfiles"
-	"zenmind-app-server-go/backend/internal/model"
-	"zenmind-app-server-go/backend/internal/security"
-	"zenmind-app-server-go/backend/internal/store"
+	"zenmind-app-server/backend/internal/config"
+	"zenmind-app-server/backend/internal/configfiles"
+	"zenmind-app-server/backend/internal/model"
+	"zenmind-app-server/backend/internal/security"
+	"zenmind-app-server/backend/internal/store"
 )
 
 const (

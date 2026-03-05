@@ -1,13 +1,12 @@
 # release-scripts
 
-Scripts are organized by operating system:
+Utility scripts for key management in containerized deployments.
 
-- `mac/`: shell scripts (`.sh`) for macOS and Linux
-- `windows/`: Windows scripts (`.ps1`) 
+- `mac/`: shell scripts for macOS and Linux
+- `windows/`: PowerShell scripts for Windows
 
 Current scripts:
 
-- `mac/package.sh`
 - `mac/manage-jwk-key.sh`
 - `mac/setup-jwk-public-key.sh`
 - `windows/setup-jwk-public-key.ps1`

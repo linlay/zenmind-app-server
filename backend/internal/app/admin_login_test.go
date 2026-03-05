@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"zenmind-app-server-go/backend/internal/config"
-	"zenmind-app-server-go/backend/internal/model"
+	"zenmind-app-server/backend/internal/config"
+	"zenmind-app-server/backend/internal/model"
 )
 
 const (
