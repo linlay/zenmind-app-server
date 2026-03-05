@@ -19,10 +19,11 @@ services:
       AUTH_TOKEN_ROTATE_REFRESH_TOKEN: ${AUTH_TOKEN_ROTATE_REFRESH_TOKEN:-true}
       AUTH_CLEANUP_RETENTION: ${AUTH_CLEANUP_RETENTION:-PT24H}
       AUTH_CLEANUP_CRON: ${AUTH_CLEANUP_CRON:-0 0 * * * *}
+      AUTH_EXTERNAL_EDITABLE_FILES: ${AUTH_EXTERNAL_EDITABLE_FILES:-}
     volumes:
       - ./data:/data
     ports:
-      - "${BACKEND_PORT:-11952}:8080"
+      - "${BACKEND_PORT}:8080"
 
   frontend:
     image: zenmind-app-server-frontend
@@ -38,4 +39,4 @@ services:
     depends_on:
       - backend
     ports:
-      - "${FRONTEND_PORT:-11950}:80"
+      - "${FRONTEND_PORT}:80"

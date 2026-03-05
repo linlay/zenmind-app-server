@@ -99,6 +99,15 @@ func loadEditableFiles(applicationYAMLPath string) (string, []EditableFile, erro
 	if err != nil {
 		return "", nil, fmt.Errorf("resolve application.yml path failed: %w", err)
 	}
+	baseDir := filepath.Dir(absYAMLPath)
+	if envOverride := env("AUTH_EXTERNAL_EDITABLE_FILES", ""); envOverride != "" {
+		out, err := resolveEditableFiles(baseDir, strings.Split(envOverride, ","))
+		if err != nil {
+			return "", nil, err
+		}
+		return absYAMLPath, out, nil
+	}
+
 	raw, err := os.ReadFile(absYAMLPath)
 	if err != nil {
 		return "", nil, fmt.Errorf("read application.yml failed: %w", err)
@@ -111,10 +120,17 @@ func loadEditableFiles(applicationYAMLPath string) (string, []EditableFile, erro
 	if err := yaml.Unmarshal(raw, &parsed); err != nil {
 		return "", nil, fmt.Errorf("parse application.yml failed: %w", err)
 	}
-	baseDir := filepath.Dir(absYAMLPath)
-	out := make([]EditableFile, 0, len(parsed.External.EditableFiles))
-	seen := make(map[string]struct{}, len(parsed.External.EditableFiles))
-	for _, value := range parsed.External.EditableFiles {
+	out, err := resolveEditableFiles(baseDir, parsed.External.EditableFiles)
+	if err != nil {
+		return "", nil, err
+	}
+	return absYAMLPath, out, nil
+}
+
+func resolveEditableFiles(baseDir string, values []string) ([]EditableFile, error) {
+	out := make([]EditableFile, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
 		configuredPath := strings.TrimSpace(value)
 		if configuredPath == "" {
 			continue
@@ -124,20 +140,20 @@ func loadEditableFiles(applicationYAMLPath string) (string, []EditableFile, erro
 			resolvedPath = filepath.Join(baseDir, resolvedPath)
 		}
 		resolvedPath = filepath.Clean(resolvedPath)
-		resolvedPath, err = filepath.Abs(resolvedPath)
+		absResolvedPath, err := filepath.Abs(resolvedPath)
 		if err != nil {
-			return "", nil, fmt.Errorf("resolve editable file path failed: %w", err)
+			return nil, fmt.Errorf("resolve editable file path failed: %w", err)
 		}
-		if _, ok := seen[resolvedPath]; ok {
+		if _, ok := seen[absResolvedPath]; ok {
 			continue
 		}
-		seen[resolvedPath] = struct{}{}
+		seen[absResolvedPath] = struct{}{}
 		out = append(out, EditableFile{
 			Path:         configuredPath,
-			ResolvedPath: resolvedPath,
+			ResolvedPath: absResolvedPath,
 		})
 	}
-	return absYAMLPath, out, nil
+	return out, nil
 }
 
 func validate(cfg *Config) error {
