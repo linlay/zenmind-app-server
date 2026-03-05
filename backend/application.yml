@@ -1,5 +1,5 @@
 server:
-  port: 11952
+  port: 8080
 
 auth:
   admin:

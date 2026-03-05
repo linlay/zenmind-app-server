@@ -19,9 +19,23 @@ services:
       AUTH_TOKEN_ROTATE_REFRESH_TOKEN: ${AUTH_TOKEN_ROTATE_REFRESH_TOKEN:-true}
       AUTH_CLEANUP_RETENTION: ${AUTH_CLEANUP_RETENTION:-PT24H}
       AUTH_CLEANUP_CRON: ${AUTH_CLEANUP_CRON:-0 0 * * * *}
-      AUTH_EXTERNAL_EDITABLE_FILES: ${AUTH_EXTERNAL_EDITABLE_FILES:-}
+      AUTH_EXTERNAL_EDITABLE_FILES: /app/config/zenmind-root.env,/app/config/mcp-server-mock.env,/app/config/term-webclient-release.env,/app/config/term-webclient-release.application.yml
     volumes:
-      - ./data:/data
+      - type: bind
+        source: ./data
+        target: /data
+      - type: bind
+        source: ./.env
+        target: /app/config/zenmind-root.env
+      - type: bind
+        source: ../mcp-server-mock/.env
+        target: /app/config/mcp-server-mock.env
+      - type: bind
+        source: ../term-webclient/release/.env
+        target: /app/config/term-webclient-release.env
+      - type: bind
+        source: ../term-webclient/release/application.yml
+        target: /app/config/term-webclient-release.application.yml
     ports:
       - "${BACKEND_PORT}:8080"
 
@@ -31,10 +45,6 @@ services:
       context: ./frontend
       args:
         VITE_BASE_PATH: ${VITE_BASE_PATH:-/admin/}
-        VITE_DEV_PORT: ${VITE_DEV_PORT:-11950}
-        VITE_DEV_STRICT_PORT: ${VITE_DEV_STRICT_PORT:-true}
-        VITE_API_PROXY_PATH: ${VITE_API_PROXY_PATH:-/admin/api}
-        VITE_API_PROXY_TARGET: ${VITE_API_PROXY_TARGET:-http://backend:8080}
     container_name: app-auth-frontend
     depends_on:
       - backend

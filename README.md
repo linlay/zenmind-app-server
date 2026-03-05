@@ -124,6 +124,27 @@ curl -i http://localhost:11952/admin/api/session/me
 
 默认数据库在挂载目录 `./data/auth.db`（由 `docker-compose.yml` 的 `./data:/data` 提供）。
 
+### 6.4 Config Files 挂载与编辑
+
+`backend` 容器统一使用 `/app/config` 作为可编辑配置目录，并通过 `AUTH_EXTERNAL_EDITABLE_FILES` 固定为以下 4 个文件：
+
+- `/app/config/zenmind-root.env`
+- `/app/config/mcp-server-mock.env`
+- `/app/config/term-webclient-release.env`
+- `/app/config/term-webclient-release.application.yml`
+
+对应宿主机挂载来源：
+
+- `./.env` -> `/app/config/zenmind-root.env`
+- `../mcp-server-mock/.env` -> `/app/config/mcp-server-mock.env`
+- `../term-webclient/release/.env` -> `/app/config/term-webclient-release.env`
+- `../term-webclient/release/application.yml` -> `/app/config/term-webclient-release.application.yml`
+
+说明：
+
+- 以上挂载均为读写（rw），可在管理台 `Config Files` 页面直接修改并回写宿主机文件。
+- 若某源文件不存在，`Config Files` 页面会显示 `Exists = NO`，且不可保存。
+
 ## 7. JWK 管理
 
 脚本位于 `release-scripts/`。
