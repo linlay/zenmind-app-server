@@ -41,7 +41,7 @@ services:
     networks:
       zenmind-network:
         aliases:
-          - app-backend
+          - app-server-backend
 
   frontend:
     image: zenmind-app-server-frontend
@@ -57,7 +57,7 @@ services:
     networks:
       zenmind-network:
         aliases:
-          - app-frontend
+          - app-server-frontend
 
 networks:
   zenmind-network:
