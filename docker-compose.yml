@@ -4,26 +4,16 @@ services:
     build:
       context: ./backend
     container_name: backend
-    environment:
-      AUTH_DB_PATH: ${AUTH_DB_PATH:-/data/auth.db}
-      AUTH_ISSUER: ${AUTH_ISSUER:-http://localhost:8080}
-      AUTH_ADMIN_USERNAME: ${AUTH_ADMIN_USERNAME:-admin}
-      AUTH_ADMIN_PASSWORD_BCRYPT: ${AUTH_ADMIN_PASSWORD_BCRYPT:?AUTH_ADMIN_PASSWORD_BCRYPT is required}
-      AUTH_APP_USERNAME: ${AUTH_APP_USERNAME:-app}
-      AUTH_APP_MASTER_PASSWORD_BCRYPT: ${AUTH_APP_MASTER_PASSWORD_BCRYPT:?AUTH_APP_MASTER_PASSWORD_BCRYPT is required}
-      AUTH_APP_ACCESS_TTL: ${AUTH_APP_ACCESS_TTL:-PT10M}
-      AUTH_APP_MAX_ACCESS_TTL: ${AUTH_APP_MAX_ACCESS_TTL:-P30D}
-      AUTH_APP_ROTATE_DEVICE_TOKEN: ${AUTH_APP_ROTATE_DEVICE_TOKEN:-true}
-      AUTH_TOKEN_ACCESS_TTL: ${AUTH_TOKEN_ACCESS_TTL:-PT15M}
-      AUTH_TOKEN_REFRESH_TTL: ${AUTH_TOKEN_REFRESH_TTL:-P30D}
-      AUTH_TOKEN_ROTATE_REFRESH_TOKEN: ${AUTH_TOKEN_ROTATE_REFRESH_TOKEN:-true}
-      AUTH_CLEANUP_RETENTION: ${AUTH_CLEANUP_RETENTION:-PT24H}
-      AUTH_CLEANUP_CRON: ${AUTH_CLEANUP_CRON:-0 0 * * * *}
-      AUTH_EXTERNAL_EDITABLE_FILES: /app/config/zenmind-root.env,/app/config/mcp-server-mock.env,/app/config/term-webclient-release.env,/app/config/term-webclient-release.application.yml
+    env_file:
+      - ./.env
     volumes:
       - type: bind
         source: ./data
         target: /data
+      # BEGIN GENERATED CONFIG FILES VOLUMES
+      - type: bind
+        source: ./release/config-files.runtime.yml
+        target: /app/config/config-files.runtime.yml
       - type: bind
         source: ./.env
         target: /app/config/zenmind-root.env
@@ -36,6 +26,7 @@ services:
       - type: bind
         source: ../term-webclient/release/application.yml
         target: /app/config/term-webclient-release.application.yml
+      # END GENERATED CONFIG FILES VOLUMES
     ports:
       - "${BACKEND_PORT}:8080"
     networks:

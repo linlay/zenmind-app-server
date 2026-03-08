@@ -86,7 +86,8 @@ API 分组以 `API_CONTRACT.md` 与 `server.go` 为准：
 - 本地开发使用 `.env`，建议从 `.env.example` 复制。
 - `AUTH_APP_MAX_ACCESS_TTL` 默认 `P30D`，与前端安全页的最大 TTL 限制一致。
 - bcrypt 变量必须是合法 bcrypt 串，且建议在 `.env` 中用单引号包裹。
-- `external.editable-files` 白名单来源于 `backend/application.yml`，仅白名单内且已存在文件可被管理台保存。
+- 后端源码内置非敏感默认配置；`.env` 用于敏感值和环境覆盖。
+- 管理台可编辑配置文件来源于 `release/config-files.yml`，运行时由 `make config-sync` 生成 `release/config-files.runtime.yml` 与 `docker-compose.yml` 中的挂载块。
 - 任何 API 变更应同步 `API_CONTRACT.md` 与本文档第 3 节。
 
 ## 6. 代码与配置约定

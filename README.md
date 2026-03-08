@@ -32,14 +32,43 @@ cp .env.example .env
 
 - `AUTH_ADMIN_PASSWORD_BCRYPT`
 - `AUTH_APP_MASTER_PASSWORD_BCRYPT`
+
+如需覆盖默认行为，可在 `.env` 中设置：
+
 - `AUTH_ISSUER`（建议改为实际后端地址，如 `http://localhost:11952`）
-
-TTL 相关默认值：
-
 - `AUTH_APP_ACCESS_TTL=PT10M`
 - `AUTH_APP_MAX_ACCESS_TTL=P30D`（30 天）
 
 说明：示例 bcrypt 仅用于本地开发，生产必须替换。
+
+说明：
+
+- 根目录 `.env` 同时承担两件事：
+  - 作为 Docker Compose 的变量输入文件
+  - 通过 `env_file` 注入 backend 容器
+- 非敏感默认值直接内置在后端源码中。
+- 管理台 “Config Files” 页面展示的配置名称和宿主机路径，不再从 Compose 里手写，而是来自 `release/config-files.yml`。
+
+## 3.1 Managed Config Registry
+
+可管理配置文件统一定义在 `release/config-files.yml`：
+
+- `id`: API 和前端使用的稳定标识
+- `name`: 管理台展示名称
+- `type`: 展示用途的类型标签
+- `sourcePath`: 宿主机文件路径
+- `containerPath`: 挂载到 backend 容器后的路径
+
+修改该文件后执行：
+
+```bash
+make config-sync
+```
+
+它会自动：
+
+- 生成本机运行用的 `release/config-files.runtime.yml`
+- 更新 `docker-compose.yml` 中的配置文件挂载块
 
 ## 4. 生成 bcrypt
 
@@ -78,6 +107,7 @@ docker run --rm --entrypoint htpasswd httpd:2.4-alpine -nBC 10 '' 'MyStrongPassw
 项目根目录：
 
 ```bash
+make config-sync
 docker compose up -d --build
 ```
 
@@ -126,7 +156,9 @@ curl -i http://localhost:11952/admin/api/session/me
 
 ### 6.4 Config Files 挂载与编辑
 
-`backend` 容器统一使用 `/app/config` 作为可编辑配置目录，并通过 `AUTH_EXTERNAL_EDITABLE_FILES` 固定为以下 4 个文件：
+`backend` 容器统一使用 `/app/config` 作为可编辑配置目录。具体有哪些文件、显示什么名称、对应哪个宿主机路径，都由 `release/config-files.yml` 决定，并通过 `make config-sync` 生成到 Compose 与运行时注册表。
+
+当前默认注册表包含以下 4 个文件：
 
 - `/app/config/zenmind-root.env`
 - `/app/config/mcp-server-mock.env`
@@ -143,7 +175,15 @@ curl -i http://localhost:11952/admin/api/session/me
 说明：
 
 - 以上挂载均为读写（rw），可在管理台 `Config Files` 页面直接修改并回写宿主机文件。
+- 页面会显示注册表中的 `name` 与宿主机完整路径。
 - 若某源文件不存在，`Config Files` 页面会显示 `Exists = NO`，且不可保存。
+
+### 6.5 配置分层规则
+
+- 后端源码：内置非敏感默认值，例如 issuer 默认值、用户名默认值、TTL、cleanup 参数。
+- `.env`：敏感值和环境覆盖值，例如两个 bcrypt，以及需要覆盖默认值时的 `AUTH_*`。
+- `release/config-files.yml`：定义管理台可编辑的外部配置文件及其展示名称。
+- `docker-compose.yml`：只负责 `env_file`、端口、volume 与容器编排，不再逐项展开 backend 的全部环境变量。
 
 ## 7. JWK 管理
 

@@ -10,17 +10,52 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"gopkg.in/yaml.v3"
+
+	"zenmind-app-server/backend/internal/managedconfigregistry"
 )
 
 var bcryptPattern = regexp.MustCompile(`^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$`)
+
+type defaults struct {
+	ServerPort                 int
+	DBPath                     string
+	Issuer                     string
+	AdminUsername              string
+	AppUsername                string
+	AppAccessTTL               string
+	AppMaxAccessTTL            string
+	AppRotateDeviceToken       bool
+	TokenAccessTTL             string
+	TokenRefreshTTL            string
+	TokenRotateRefresh         bool
+	CleanupRetention           string
+	CleanupCron                string
+	DefaultRuntimeRegistryPath string
+}
+
+var builtInDefaults = defaults{
+	ServerPort:                 8080,
+	DBPath:                     "../data/auth.db",
+	Issuer:                     "http://localhost:8080",
+	AdminUsername:              "admin",
+	AppUsername:                "app",
+	AppAccessTTL:               "PT10M",
+	AppMaxAccessTTL:            "P30D",
+	AppRotateDeviceToken:       true,
+	TokenAccessTTL:             "PT15M",
+	TokenRefreshTTL:            "P30D",
+	TokenRotateRefresh:         true,
+	CleanupRetention:           "PT24H",
+	CleanupCron:                "0 0 * * * *",
+	DefaultRuntimeRegistryPath: "/app/config/config-files.runtime.yml",
+}
 
 type Config struct {
 	ServerPort int
 	DBPath     string
 	Issuer     string
 
-	ApplicationYAMLPath   string
+	EditableFilesBaseDir  string
 	ExternalEditableFiles []EditableFile
 
 	AdminUsername       string
@@ -41,49 +76,67 @@ type Config struct {
 }
 
 type EditableFile struct {
-	Path         string
-	ResolvedPath string
+	ID            string
+	Name          string
+	Type          string
+	HostPath      string
+	ContainerPath string
+	Path          string
+	ResolvedPath  string
 }
 
 func Load() (*Config, error) {
 	_ = godotenv.Load("../.env", ".env")
-	applicationYAMLPath, editableFiles, err := loadEditableFiles(env("AUTH_APPLICATION_YML_PATH", "application.yml"))
+
+	baseDir, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("resolve working directory failed: %w", err)
+	}
+	baseDir, err = filepath.Abs(baseDir)
+	if err != nil {
+		return nil, fmt.Errorf("resolve working directory failed: %w", err)
+	}
+
+	editableFiles, err := loadEditableFiles(baseDir)
 	if err != nil {
 		return nil, err
 	}
 
-	port := envInt("SERVER_PORT", envInt("BACKEND_PORT", 8080))
+	port := envInt("SERVER_PORT", envInt("BACKEND_PORT", builtInDefaults.ServerPort))
 	cfg := &Config{
-		ServerPort:              port,
-		DBPath:                  env("AUTH_DB_PATH", "../data/auth.db"),
-		Issuer:                  env("AUTH_ISSUER", "http://localhost:8080"),
-		ApplicationYAMLPath:     applicationYAMLPath,
-		ExternalEditableFiles:   editableFiles,
-		AdminUsername:           env("AUTH_ADMIN_USERNAME", "admin"),
-		AdminPasswordBcrypt:     normalizeQuotedValue(env("AUTH_ADMIN_PASSWORD_BCRYPT", "")),
-		AppUsername:             env("AUTH_APP_USERNAME", "app"),
-		AppMasterPasswordBcrypt: normalizeQuotedValue(env("AUTH_APP_MASTER_PASSWORD_BCRYPT", "")),
-		AppRotateDeviceToken:    envBool("AUTH_APP_ROTATE_DEVICE_TOKEN", true),
-		TokenRotateRefresh:      envBool("AUTH_TOKEN_ROTATE_REFRESH_TOKEN", true),
-		CleanupCron:             env("AUTH_CLEANUP_CRON", "0 0 * * * *"),
+		ServerPort:            port,
+		DBPath:                env("AUTH_DB_PATH", builtInDefaults.DBPath),
+		Issuer:                env("AUTH_ISSUER", builtInDefaults.Issuer),
+		EditableFilesBaseDir:  baseDir,
+		ExternalEditableFiles: editableFiles,
+		AdminUsername:         env("AUTH_ADMIN_USERNAME", builtInDefaults.AdminUsername),
+		AdminPasswordBcrypt:   normalizeQuotedValue(env("AUTH_ADMIN_PASSWORD_BCRYPT", "")),
+		AppUsername:           env("AUTH_APP_USERNAME", builtInDefaults.AppUsername),
+		AppMasterPasswordBcrypt: normalizeQuotedValue(
+			env("AUTH_APP_MASTER_PASSWORD_BCRYPT", ""),
+		),
+		AppRotateDeviceToken: envBool("AUTH_APP_ROTATE_DEVICE_TOKEN", builtInDefaults.AppRotateDeviceToken),
+		TokenRotateRefresh:   envBool("AUTH_TOKEN_ROTATE_REFRESH_TOKEN", builtInDefaults.TokenRotateRefresh),
+		CleanupCron:          env("AUTH_CLEANUP_CRON", builtInDefaults.CleanupCron),
 	}
-	cfg.AppAccessTTL, err = parseFlexibleDuration(env("AUTH_APP_ACCESS_TTL", "PT10M"))
+
+	cfg.AppAccessTTL, err = parseFlexibleDuration(env("AUTH_APP_ACCESS_TTL", builtInDefaults.AppAccessTTL))
 	if err != nil {
 		return nil, fmt.Errorf("invalid AUTH_APP_ACCESS_TTL: %w", err)
 	}
-	cfg.AppMaxAccessTTL, err = parseFlexibleDuration(env("AUTH_APP_MAX_ACCESS_TTL", "P30D"))
+	cfg.AppMaxAccessTTL, err = parseFlexibleDuration(env("AUTH_APP_MAX_ACCESS_TTL", builtInDefaults.AppMaxAccessTTL))
 	if err != nil {
 		return nil, fmt.Errorf("invalid AUTH_APP_MAX_ACCESS_TTL: %w", err)
 	}
-	cfg.TokenAccessTTL, err = parseFlexibleDuration(env("AUTH_TOKEN_ACCESS_TTL", "PT15M"))
+	cfg.TokenAccessTTL, err = parseFlexibleDuration(env("AUTH_TOKEN_ACCESS_TTL", builtInDefaults.TokenAccessTTL))
 	if err != nil {
 		return nil, fmt.Errorf("invalid AUTH_TOKEN_ACCESS_TTL: %w", err)
 	}
-	cfg.TokenRefreshTTL, err = parseFlexibleDuration(env("AUTH_TOKEN_REFRESH_TTL", "P30D"))
+	cfg.TokenRefreshTTL, err = parseFlexibleDuration(env("AUTH_TOKEN_REFRESH_TTL", builtInDefaults.TokenRefreshTTL))
 	if err != nil {
 		return nil, fmt.Errorf("invalid AUTH_TOKEN_REFRESH_TTL: %w", err)
 	}
-	cfg.CleanupRetention, err = parseFlexibleDuration(env("AUTH_CLEANUP_RETENTION", "PT24H"))
+	cfg.CleanupRetention, err = parseFlexibleDuration(env("AUTH_CLEANUP_RETENTION", builtInDefaults.CleanupRetention))
 	if err != nil {
 		return nil, fmt.Errorf("invalid AUTH_CLEANUP_RETENTION: %w", err)
 	}
@@ -94,66 +147,120 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
-func loadEditableFiles(applicationYAMLPath string) (string, []EditableFile, error) {
-	absYAMLPath, err := filepath.Abs(strings.TrimSpace(applicationYAMLPath))
-	if err != nil {
-		return "", nil, fmt.Errorf("resolve application.yml path failed: %w", err)
-	}
-	baseDir := filepath.Dir(absYAMLPath)
-	if envOverride := env("AUTH_EXTERNAL_EDITABLE_FILES", ""); envOverride != "" {
-		out, err := resolveEditableFiles(baseDir, strings.Split(envOverride, ","))
-		if err != nil {
-			return "", nil, err
+func loadEditableFiles(baseDir string) ([]EditableFile, error) {
+	if registryPath, explicit := resolveRegistryPath(); registryPath != "" {
+		if explicit || fileExists(registryPath) {
+			return loadEditableFilesFromRuntimeRegistry(registryPath)
 		}
-		return absYAMLPath, out, nil
 	}
 
-	raw, err := os.ReadFile(absYAMLPath)
-	if err != nil {
-		return "", nil, fmt.Errorf("read application.yml failed: %w", err)
+	if envOverride := env("AUTH_EXTERNAL_EDITABLE_FILES", ""); envOverride != "" {
+		return resolveLegacyEditableFiles(baseDir, strings.Split(envOverride, ",")), nil
 	}
-	var parsed struct {
-		External struct {
-			EditableFiles []string `yaml:"editable-files"`
-		} `yaml:"external"`
-	}
-	if err := yaml.Unmarshal(raw, &parsed); err != nil {
-		return "", nil, fmt.Errorf("parse application.yml failed: %w", err)
-	}
-	out, err := resolveEditableFiles(baseDir, parsed.External.EditableFiles)
-	if err != nil {
-		return "", nil, err
-	}
-	return absYAMLPath, out, nil
+
+	return []EditableFile{}, nil
 }
 
-func resolveEditableFiles(baseDir string, values []string) ([]EditableFile, error) {
+func loadEditableFilesFromRuntimeRegistry(registryPath string) ([]EditableFile, error) {
+	registry, err := managedconfigregistry.LoadRuntime(registryPath)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]EditableFile, 0, len(registry.Files))
+	for _, file := range registry.Files {
+		resolvedPath, err := resolveAbsolutePath(file.ContainerPath)
+		if err != nil {
+			return nil, fmt.Errorf("resolve container path failed for id %q: %w", file.ID, err)
+		}
+		out = append(out, EditableFile{
+			ID:            strings.TrimSpace(file.ID),
+			Name:          strings.TrimSpace(file.Name),
+			Type:          strings.TrimSpace(file.Type),
+			HostPath:      strings.TrimSpace(file.HostPath),
+			ContainerPath: strings.TrimSpace(file.ContainerPath),
+			Path:          strings.TrimSpace(file.ContainerPath),
+			ResolvedPath:  resolvedPath,
+		})
+	}
+	return out, nil
+}
+
+func resolveLegacyEditableFiles(baseDir string, values []string) []EditableFile {
 	out := make([]EditableFile, 0, len(values))
 	seen := make(map[string]struct{}, len(values))
-	for _, value := range values {
+	for index, value := range values {
 		configuredPath := strings.TrimSpace(value)
 		if configuredPath == "" {
 			continue
 		}
-		resolvedPath := configuredPath
-		if !filepath.IsAbs(resolvedPath) {
-			resolvedPath = filepath.Join(baseDir, resolvedPath)
-		}
-		resolvedPath = filepath.Clean(resolvedPath)
-		absResolvedPath, err := filepath.Abs(resolvedPath)
+		absResolvedPath, err := resolvePathFromBase(baseDir, configuredPath)
 		if err != nil {
-			return nil, fmt.Errorf("resolve editable file path failed: %w", err)
+			continue
 		}
 		if _, ok := seen[absResolvedPath]; ok {
 			continue
 		}
 		seen[absResolvedPath] = struct{}{}
 		out = append(out, EditableFile{
-			Path:         configuredPath,
-			ResolvedPath: absResolvedPath,
+			ID:            fmt.Sprintf("legacy-%d", index+1),
+			Name:          filepath.Base(absResolvedPath),
+			Type:          detectEditableFileType(absResolvedPath),
+			HostPath:      absResolvedPath,
+			ContainerPath: absResolvedPath,
+			Path:          configuredPath,
+			ResolvedPath:  absResolvedPath,
 		})
 	}
-	return out, nil
+	return out
+}
+
+func resolveRegistryPath() (string, bool) {
+	if registryPath := strings.TrimSpace(os.Getenv("AUTH_CONFIG_FILES_REGISTRY_PATH")); registryPath != "" {
+		return registryPath, true
+	}
+	return builtInDefaults.DefaultRuntimeRegistryPath, false
+}
+
+func resolveAbsolutePath(rawPath string) (string, error) {
+	return resolvePathFromBase("", rawPath)
+}
+
+func resolvePathFromBase(baseDir, rawPath string) (string, error) {
+	resolvedPath := strings.TrimSpace(rawPath)
+	if resolvedPath == "" {
+		return "", fmt.Errorf("path is empty")
+	}
+	if !filepath.IsAbs(resolvedPath) {
+		resolvedPath = filepath.Join(baseDir, resolvedPath)
+	}
+	resolvedPath = filepath.Clean(resolvedPath)
+	absResolvedPath, err := filepath.Abs(resolvedPath)
+	if err != nil {
+		return "", fmt.Errorf("resolve editable file path failed: %w", err)
+	}
+	return absResolvedPath, nil
+}
+
+func detectEditableFileType(path string) string {
+	lower := strings.ToLower(strings.TrimSpace(path))
+	switch {
+	case strings.HasSuffix(lower, ".env") || filepath.Base(lower) == ".env":
+		return "env"
+	case strings.HasSuffix(lower, ".application.yml") || strings.HasSuffix(lower, "/application.yml"):
+		return "application-yaml"
+	case strings.HasSuffix(lower, ".yml") || strings.HasSuffix(lower, ".yaml"):
+		return "yaml"
+	default:
+		return "text"
+	}
+}
+
+func fileExists(path string) bool {
+	if strings.TrimSpace(path) == "" {
+		return false
+	}
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 func validate(cfg *Config) error {

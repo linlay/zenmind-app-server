@@ -28,7 +28,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"zenmind-app-server/backend/internal/config"
-	"zenmind-app-server/backend/internal/configfiles"
+	"zenmind-app-server/backend/internal/managedconfig"
 	"zenmind-app-server/backend/internal/model"
 	"zenmind-app-server/backend/internal/security"
 	"zenmind-app-server/backend/internal/store"
@@ -45,7 +45,7 @@ var templatesFS embed.FS
 type Server struct {
 	cfg         *config.Config
 	store       *store.Store
-	configFiles *configfiles.Service
+	configFiles *managedconfig.Service
 	keys        *security.KeyManager
 	router      http.Handler
 	templates   *template.Template
@@ -78,14 +78,19 @@ func New(cfg *config.Config, st *store.Store, keys *security.KeyManager, logger 
 	if err != nil {
 		return nil, err
 	}
-	editableFiles := make([]configfiles.AllowedFile, 0, len(cfg.ExternalEditableFiles))
+	editableFiles := make([]managedconfig.AllowedFile, 0, len(cfg.ExternalEditableFiles))
 	for _, file := range cfg.ExternalEditableFiles {
-		editableFiles = append(editableFiles, configfiles.AllowedFile{
-			Path:         file.Path,
-			ResolvedPath: file.ResolvedPath,
+		editableFiles = append(editableFiles, managedconfig.AllowedFile{
+			ID:            file.ID,
+			Name:          file.Name,
+			Type:          file.Type,
+			HostPath:      file.HostPath,
+			ContainerPath: file.ContainerPath,
+			Path:          file.Path,
+			ResolvedPath:  file.ResolvedPath,
 		})
 	}
-	configFileService, err := configfiles.New(editableFiles, cfg.ApplicationYAMLPath, configfiles.DefaultMaxBytes)
+	configFileService, err := managedconfig.New(editableFiles, cfg.EditableFilesBaseDir, managedconfig.DefaultMaxBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -648,12 +653,15 @@ func (s *Server) handleAdminListConfigFiles(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Server) handleAdminGetConfigFileContent(w http.ResponseWriter, r *http.Request) {
-	filePath := strings.TrimSpace(r.URL.Query().Get("path"))
-	if filePath == "" {
-		writeAPIError(w, http.StatusBadRequest, "path is required")
+	selector := strings.TrimSpace(r.URL.Query().Get("id"))
+	if selector == "" {
+		selector = strings.TrimSpace(r.URL.Query().Get("path"))
+	}
+	if selector == "" {
+		writeAPIError(w, http.StatusBadRequest, "id or path is required")
 		return
 	}
-	result, err := s.configFiles.Read(filePath)
+	result, err := s.configFiles.Read(selector)
 	if err != nil {
 		writeConfigFileError(w, err)
 		return
@@ -663,13 +671,22 @@ func (s *Server) handleAdminGetConfigFileContent(w http.ResponseWriter, r *http.
 
 func (s *Server) handleAdminSaveConfigFileContent(w http.ResponseWriter, r *http.Request) {
 	var req struct {
+		ID      string `json:"id"`
 		Path    string `json:"path"`
 		Content string `json:"content"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	if err := s.configFiles.Save(req.Path, req.Content); err != nil {
+	selector := strings.TrimSpace(req.ID)
+	if selector == "" {
+		selector = strings.TrimSpace(req.Path)
+	}
+	if selector == "" {
+		writeAPIError(w, http.StatusBadRequest, "id or path is required")
+		return
+	}
+	if err := s.configFiles.Save(selector, req.Content); err != nil {
 		writeConfigFileError(w, err)
 		return
 	}
@@ -1795,15 +1812,15 @@ func writeSQLError(w http.ResponseWriter, err error) {
 
 func writeConfigFileError(w http.ResponseWriter, err error) {
 	switch {
-	case configfiles.IsCode(err, configfiles.CodeInvalidPath):
+	case managedconfig.IsCode(err, managedconfig.CodeInvalidPath):
 		writeAPIError(w, http.StatusBadRequest, err.Error())
-	case configfiles.IsCode(err, configfiles.CodeNotAllowed):
+	case managedconfig.IsCode(err, managedconfig.CodeNotAllowed):
 		writeAPIError(w, http.StatusForbidden, err.Error())
-	case configfiles.IsCode(err, configfiles.CodeNotFound):
+	case managedconfig.IsCode(err, managedconfig.CodeNotFound):
 		writeAPIError(w, http.StatusBadRequest, err.Error())
-	case configfiles.IsCode(err, configfiles.CodeNotFile):
+	case managedconfig.IsCode(err, managedconfig.CodeNotFile):
 		writeAPIError(w, http.StatusBadRequest, err.Error())
-	case configfiles.IsCode(err, configfiles.CodeTooLarge):
+	case managedconfig.IsCode(err, managedconfig.CodeTooLarge):
 		writeAPIError(w, http.StatusRequestEntityTooLarge, err.Error())
 	default:
 		writeInternalError(w, err)

@@ -14,7 +14,8 @@ backend/app
 backend/coverage.out
 
 # build/release
-release/
+release/*
+!release/config-files.yml
 
 # data
 data/*.db
@@ -22,3 +23,6 @@ data/*.db-*
 
 # logs
 *.log
+
+# local tooling cache
+.tmp/

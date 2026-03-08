@@ -150,6 +150,12 @@
   color: #35507f;
 }
 
+.config-file-summary {
+  display: grid;
+  gap: 4px;
+  min-width: 180px;
+}
+
 .config-file-path {
   max-width: 420px;
   word-break: break-all;

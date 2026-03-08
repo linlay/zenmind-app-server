@@ -9,7 +9,7 @@ import { PageCard } from '../../shared/ui/PageCard';
 import { toast } from '../../shared/ui/toast';
 
 function fileKey(file) {
-  return file.resolvedPath || file.path;
+  return file.id || file.resolvedPath || file.path;
 }
 
 function pickSelectedPath(files, preferredPath, currentPath) {
@@ -70,9 +70,9 @@ export function ConfigFilesPage() {
       setSavedContent('');
       return;
     }
-    setContentLoading(true);
+      setContentLoading(true);
     try {
-      const result = await request(`/admin/api/config-files/content?path=${encodeURIComponent(targetFile.path)}`);
+      const result = await request(`/admin/api/config-files/content?id=${encodeURIComponent(targetFile.id)}`);
       const nextContent = typeof result?.content === 'string' ? result.content : '';
       setContent(nextContent);
       setSavedContent(nextContent);
@@ -110,7 +110,7 @@ export function ConfigFilesPage() {
       await request('/admin/api/config-files/content', {
         method: 'PUT',
         body: JSON.stringify({
-          path: selectedFile.path,
+          id: selectedFile.id,
           content
         })
       });
@@ -131,12 +131,26 @@ export function ConfigFilesPage() {
 
   const columns = useMemo(() => [
     {
-      key: 'path',
-      title: 'Path',
+      key: 'name',
+      title: 'Name',
+      render: (file) => (
+        <div className="config-file-summary">
+          <div>{file.name || file.id}</div>
+          <small>{file.id}</small>
+        </div>
+      )
+    },
+    {
+      key: 'type',
+      title: 'Type',
+      render: (file) => file.type || '-'
+    },
+    {
+      key: 'hostPath',
+      title: 'Host Path',
       render: (file) => (
         <div className="config-file-path">
-          <div>{file.path}</div>
-          <small>{file.resolvedPath}</small>
+          {file.hostPath || file.resolvedPath || file.path}
         </div>
       )
     },
@@ -178,7 +192,7 @@ export function ConfigFilesPage() {
           columns={columns}
           rows={files}
           rowKey={fileKey}
-          empty={<EmptyState title="No editable files configured" description="Configure external.editable-files in application.yml." />}
+          empty={<EmptyState title="No editable files configured" description="Configure release/config-files.yml and run make config-sync." />}
         />
       </PageCard>
 
@@ -201,8 +215,8 @@ export function ConfigFilesPage() {
         ) : (
           <>
             <div className="config-file-meta">
-              <p className="mono-inline">{selectedFile.path}</p>
-              <small className="muted">Resolved: {selectedFile.resolvedPath}</small>
+              <p>{selectedFile.name || selectedFile.id}</p>
+              <small className="mono-inline">{selectedFile.hostPath || selectedFile.resolvedPath || selectedFile.path}</small>
               {!selectedFile.exists ? <div className="error">File does not exist. Create it first before editing.</div> : null}
             </div>
             <textarea

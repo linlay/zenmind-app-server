@@ -1,4 +1,4 @@
-package configfiles
+package managedconfig
 
 import (
 	"errors"
@@ -12,23 +12,38 @@ import (
 const DefaultMaxBytes int64 = 1 << 20
 
 type AllowedFile struct {
-	Path         string
-	ResolvedPath string
+	ID            string
+	Name          string
+	Type          string
+	HostPath      string
+	ContainerPath string
+	Path          string
+	ResolvedPath  string
 }
 
 type FileMeta struct {
-	Path         string     `json:"path"`
-	ResolvedPath string     `json:"resolvedPath"`
-	Exists       bool       `json:"exists"`
-	Size         int64      `json:"size"`
-	UpdateAt     *time.Time `json:"updateAt"`
+	ID            string     `json:"id"`
+	Name          string     `json:"name"`
+	Type          string     `json:"type"`
+	HostPath      string     `json:"hostPath"`
+	ContainerPath string     `json:"containerPath"`
+	Path          string     `json:"path"`
+	ResolvedPath  string     `json:"resolvedPath"`
+	Exists        bool       `json:"exists"`
+	Size          int64      `json:"size"`
+	UpdateAt      *time.Time `json:"updateAt"`
 }
 
 type ReadResult struct {
-	Path         string     `json:"path"`
-	ResolvedPath string     `json:"resolvedPath"`
-	Content      string     `json:"content"`
-	UpdateAt     *time.Time `json:"updateAt"`
+	ID            string     `json:"id"`
+	Name          string     `json:"name"`
+	Type          string     `json:"type"`
+	HostPath      string     `json:"hostPath"`
+	ContainerPath string     `json:"containerPath"`
+	Path          string     `json:"path"`
+	ResolvedPath  string     `json:"resolvedPath"`
+	Content       string     `json:"content"`
+	UpdateAt      *time.Time `json:"updateAt"`
 }
 
 type ErrorCode string
@@ -60,12 +75,13 @@ type Service struct {
 	baseDir    string
 	maxBytes   int64
 	ordered    []AllowedFile
+	byID       map[string]AllowedFile
 	byPath     map[string]AllowedFile
 	byResolved map[string]AllowedFile
 }
 
-func New(allowed []AllowedFile, applicationYAMLPath string, maxBytes int64) (*Service, error) {
-	baseDir := filepath.Dir(strings.TrimSpace(applicationYAMLPath))
+func New(allowed []AllowedFile, baseDir string, maxBytes int64) (*Service, error) {
+	baseDir = strings.TrimSpace(baseDir)
 	if baseDir == "" {
 		baseDir = "."
 	}
@@ -76,10 +92,12 @@ func New(allowed []AllowedFile, applicationYAMLPath string, maxBytes int64) (*Se
 		baseDir:    baseDir,
 		maxBytes:   maxBytes,
 		ordered:    make([]AllowedFile, 0, len(allowed)),
+		byID:       make(map[string]AllowedFile, len(allowed)),
 		byPath:     make(map[string]AllowedFile, len(allowed)),
 		byResolved: make(map[string]AllowedFile, len(allowed)),
 	}
 	for _, file := range allowed {
+		id := strings.TrimSpace(file.ID)
 		configuredPath := strings.TrimSpace(file.Path)
 		if configuredPath == "" {
 			continue
@@ -94,13 +112,21 @@ func New(allowed []AllowedFile, applicationYAMLPath string, maxBytes int64) (*Se
 			return nil, fmt.Errorf("resolve editable file path failed: %w", err)
 		}
 		entry := AllowedFile{
-			Path:         configuredPath,
-			ResolvedPath: resolvedPath,
+			ID:            id,
+			Name:          strings.TrimSpace(file.Name),
+			Type:          strings.TrimSpace(file.Type),
+			HostPath:      strings.TrimSpace(file.HostPath),
+			ContainerPath: strings.TrimSpace(file.ContainerPath),
+			Path:          configuredPath,
+			ResolvedPath:  resolvedPath,
 		}
 		if _, ok := s.byResolved[resolvedPath]; ok {
 			continue
 		}
 		s.ordered = append(s.ordered, entry)
+		if id != "" {
+			s.byID[id] = entry
+		}
 		s.byPath[configuredPath] = entry
 		s.byResolved[resolvedPath] = entry
 	}
@@ -111,11 +137,16 @@ func (s *Service) List() ([]FileMeta, error) {
 	out := make([]FileMeta, 0, len(s.ordered))
 	for _, file := range s.ordered {
 		meta := FileMeta{
-			Path:         file.Path,
-			ResolvedPath: file.ResolvedPath,
-			Exists:       false,
-			Size:         0,
-			UpdateAt:     nil,
+			ID:            file.ID,
+			Name:          file.Name,
+			Type:          file.Type,
+			HostPath:      file.HostPath,
+			ContainerPath: file.ContainerPath,
+			Path:          file.Path,
+			ResolvedPath:  file.ResolvedPath,
+			Exists:        false,
+			Size:          0,
+			UpdateAt:      nil,
 		}
 		info, err := os.Stat(file.ResolvedPath)
 		if err != nil {
@@ -160,10 +191,15 @@ func (s *Service) Read(inputPath string) (*ReadResult, error) {
 	}
 	modifiedAt := info.ModTime().UTC()
 	return &ReadResult{
-		Path:         file.Path,
-		ResolvedPath: file.ResolvedPath,
-		Content:      string(raw),
-		UpdateAt:     &modifiedAt,
+		ID:            file.ID,
+		Name:          file.Name,
+		Type:          file.Type,
+		HostPath:      file.HostPath,
+		ContainerPath: file.ContainerPath,
+		Path:          file.Path,
+		ResolvedPath:  file.ResolvedPath,
+		Content:       string(raw),
+		UpdateAt:      &modifiedAt,
 	}, nil
 }
 
@@ -213,6 +249,9 @@ func (s *Service) resolveAllowed(inputPath string) (AllowedFile, error) {
 	candidate := strings.TrimSpace(inputPath)
 	if candidate == "" {
 		return AllowedFile{}, &Error{Code: CodeInvalidPath, Message: "path is required"}
+	}
+	if direct, ok := s.byID[candidate]; ok {
+		return direct, nil
 	}
 	if direct, ok := s.byPath[candidate]; ok {
 		return direct, nil

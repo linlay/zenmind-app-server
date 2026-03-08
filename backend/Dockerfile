@@ -9,9 +9,7 @@ FROM scratch
 WORKDIR /app
 COPY --from=build /out/app /app/app
 COPY schema.sql /app/schema.sql
-COPY application.yml /app/application.yml
 EXPOSE 8080
 ENV AUTH_SCHEMA_PATH=/app/schema.sql
-ENV AUTH_APPLICATION_YML_PATH=/app/application.yml
 ENV AUTH_DB_PATH=/data/auth.db
 ENTRYPOINT ["/app/app"]

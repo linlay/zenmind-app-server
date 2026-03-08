@@ -1,0 +1,24 @@
+files:
+  - id: zenmind-root-env
+    name: Zenmind App Server .env
+    type: env
+    sourcePath: ./.env
+    containerPath: /app/config/zenmind-root.env
+
+  - id: mcp-server-mock-env
+    name: MCP Server Mock env
+    type: env
+    sourcePath: ../mcp-server-mock/.env
+    containerPath: /app/config/mcp-server-mock.env
+
+  - id: term-webclient-release-env
+    name: Term Webclient Release env
+    type: env
+    sourcePath: ../term-webclient/release/.env
+    containerPath: /app/config/term-webclient-release.env
+
+  - id: term-webclient-release-application
+    name: Term Webclient Release application.yml
+    type: application-yaml
+    sourcePath: ../term-webclient/release/application.yml
+    containerPath: /app/config/term-webclient-release.application.yml

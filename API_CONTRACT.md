@@ -67,8 +67,8 @@
 ### Config Files
 
 - `GET /admin/api/config-files`
-- `GET /admin/api/config-files/content`
-- `PUT /admin/api/config-files/content`
+- `GET /admin/api/config-files/content?id={configFileId}` (`path` remains supported during migration)
+- `PUT /admin/api/config-files/content` with JSON body `{ "id": "...", "content": "..." }` (`path` remains supported during migration)
 
 ## OAuth2 / OIDC
 

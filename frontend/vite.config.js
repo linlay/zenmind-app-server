@@ -8,27 +8,9 @@ function loadRootEnv(mode, cwd) {
   return loadEnv(mode, rootDir, '');
 }
 
-function resolveBackendPort(cwd) {
-  const candidates = [
-    path.resolve(cwd, '../backend/application.yml'),
-    path.resolve(cwd, 'backend/application.yml')
-  ];
-
-  for (const file of candidates) {
-    if (!fs.existsSync(file)) continue;
-    const content = fs.readFileSync(file, 'utf8');
-    const match = content.match(/^\s*port:\s*(\d+)\s*$/m);
-    if (match) {
-      return Number(match[1]);
-    }
-  }
-
-  return 8080;
-}
-
 function resolveProxyTarget(env, cwd) {
   const backendPortFromEnv = Number(env.BACKEND_PORT);
-  const backendPort = Number.isNaN(backendPortFromEnv) ? resolveBackendPort(cwd) : backendPortFromEnv;
+  const backendPort = Number.isNaN(backendPortFromEnv) ? 8080 : backendPortFromEnv;
   const localFallback = `http://localhost:${backendPort}`;
   const configured = env.VITE_API_PROXY_TARGET;
   if (!configured) {

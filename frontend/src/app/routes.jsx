@@ -6,7 +6,7 @@ import { ToolsPage } from '../features/tools/ToolsPage';
 
 export const protectedRoutes = [
   { path: '/accounts', label: 'Accounts', element: <AccountsPage /> },
-  { path: '/config-files', label: 'Config Files', element: <ConfigFilesPage /> },
+  { path: '/config-files', label: 'Configs', element: <ConfigFilesPage /> },
   { path: '/security', label: 'Security', element: <SecurityPage /> },
   { path: '/app-access', label: 'Access', element: <AppAccessPage /> },
   { path: '/tools', label: 'Tools', element: <ToolsPage /> }
