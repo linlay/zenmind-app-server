@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { request } from '../../shared/api/apiClient';
+import { getErrorMessage, isHandledUnauthorizedError, request } from '../../shared/api/apiClient';
 import { copyToClipboard } from '../../shared/utils/clipboard';
 import { Button } from '../../shared/ui/Button';
 import { DataTable } from '../../shared/ui/DataTable';
@@ -55,9 +55,11 @@ export function AccountsPage() {
       const data = await request('/admin/api/users');
       setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load users';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to load users');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     } finally {
       setLoadingUsers(false);
     }
@@ -69,9 +71,11 @@ export function AccountsPage() {
       const data = await request('/admin/api/clients');
       setClients(Array.isArray(data) ? data : []);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load clients';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to load clients');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     } finally {
       setLoadingClients(false);
     }
@@ -100,9 +104,11 @@ export function AccountsPage() {
       toast.success('User created');
       await loadUsers();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create user';
-      setUserFormError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to create user');
+      if (!isHandledUnauthorizedError(err)) {
+        setUserFormError(message);
+        toast.error(message);
+      }
     } finally {
       setUserSubmitting(false);
     }
@@ -122,9 +128,11 @@ export function AccountsPage() {
       toast.success('Client created');
       await loadClients();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create client';
-      setClientFormError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to create client');
+      if (!isHandledUnauthorizedError(err)) {
+        setClientFormError(message);
+        toast.error(message);
+      }
     } finally {
       setClientSubmitting(false);
     }
@@ -140,9 +148,11 @@ export function AccountsPage() {
       toast.success(`User ${status === 'ACTIVE' ? 'activated' : 'disabled'}`);
       await loadUsers();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update user status';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to update user status');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     }
   };
 
@@ -157,9 +167,11 @@ export function AccountsPage() {
       });
       toast.success('Password reset completed');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to reset password';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to reset password');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     }
   };
 
@@ -173,9 +185,11 @@ export function AccountsPage() {
       toast.success(`Client ${status === 'ACTIVE' ? 'activated' : 'disabled'}`);
       await loadClients();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update client status';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to update client status');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     }
   };
 
@@ -187,9 +201,11 @@ export function AccountsPage() {
       setNewSecret(`${result.clientId}: ${result.newClientSecret}`);
       toast.success('Client secret rotated');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to rotate secret';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to rotate secret');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     }
   };
 

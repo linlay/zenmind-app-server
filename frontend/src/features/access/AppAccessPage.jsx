@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { request } from '../../shared/api/apiClient';
+import { getErrorMessage, isHandledUnauthorizedError, request } from '../../shared/api/apiClient';
 import { copyToClipboard } from '../../shared/utils/clipboard';
 import { formatTime } from '../../shared/utils/time';
 import { tokenPreview } from '../../shared/utils/token';
@@ -88,9 +88,11 @@ export function AppAccessPage() {
     try {
       await Promise.all([loadDevices(), loadTokens()]);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load app access data';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to load app access data');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -111,9 +113,11 @@ export function AppAccessPage() {
       toast.success(`Device revoked: ${device.deviceName}`);
       await Promise.all([loadDevices({ resetPage: true }), loadTokens(tokenFilter, { resetPage: true })]);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to revoke device';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to revoke device');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     }
   };
 
@@ -124,9 +128,11 @@ export function AppAccessPage() {
       await loadTokens(tokenFilter, { resetPage: true });
       toast.success('Token filter applied');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to apply token filter';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to apply token filter');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     }
   };
 
@@ -137,9 +143,11 @@ export function AppAccessPage() {
       await loadDevices();
       toast.success('App devices refreshed');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to refresh app devices';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to refresh app devices');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     } finally {
       setRefreshingDevices(false);
     }
@@ -152,9 +160,11 @@ export function AppAccessPage() {
       await loadTokens(tokenFilter);
       toast.success('Token audit refreshed');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to refresh token audit';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to refresh token audit');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     } finally {
       setRefreshingTokens(false);
     }

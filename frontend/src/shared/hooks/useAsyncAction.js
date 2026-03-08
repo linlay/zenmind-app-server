@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { getErrorMessage, isHandledUnauthorizedError } from '../api/apiClient';
 
 export function useAsyncAction() {
   const [loading, setLoading] = useState(false);
@@ -12,8 +13,10 @@ export function useAsyncAction() {
     try {
       return await action();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Request failed';
-      setError(message);
+      const message = getErrorMessage(err);
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+      }
       if (onError) onError(message, err);
       throw err;
     } finally {

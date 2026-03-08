@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { request } from '../../shared/api/apiClient';
+import { getErrorMessage, isHandledUnauthorizedError, request } from '../../shared/api/apiClient';
 import { Button } from '../../shared/ui/Button';
 import { DataTable } from '../../shared/ui/DataTable';
 import { EmptyState } from '../../shared/ui/EmptyState';
@@ -44,9 +44,11 @@ export function ClientsPage() {
       setClients(Array.isArray(data) ? data : []);
       setError('');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load clients';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to load clients');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -70,9 +72,11 @@ export function ClientsPage() {
       toast.success('Client created');
       await loadClients();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create client';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to create client');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -88,9 +92,11 @@ export function ClientsPage() {
       toast.success(`Client ${status === 'ACTIVE' ? 'activated' : 'disabled'}`);
       await loadClients();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update client status';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to update client status');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     }
   };
 
@@ -102,9 +108,11 @@ export function ClientsPage() {
       setNewSecret(`${result.clientId}: ${result.newClientSecret}`);
       toast.success('Client secret rotated');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to rotate secret';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to rotate secret');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     }
   };
 

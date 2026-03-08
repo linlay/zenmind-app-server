@@ -20,6 +20,7 @@ export function LoginPage({ onLogin }) {
       const session = await run(async () => {
         return request('/admin/api/session/login', {
           method: 'POST',
+          skipAuthRedirect: true,
           body: JSON.stringify({ username, password })
         });
       });

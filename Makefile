@@ -9,10 +9,13 @@ backend-test:
 frontend-build:
 	cd frontend && npm ci && npm run build
 
-up:
-	docker compose up --build
+docker-build:
+	docker compose build
 
-down:
+docker-up:
+	docker compose up -d --build
+
+docker-down:
 	docker compose down
 
 size-check:

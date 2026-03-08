@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { request } from '../../shared/api/apiClient';
+import { getErrorMessage, isHandledUnauthorizedError, request } from '../../shared/api/apiClient';
 import { Button } from '../../shared/ui/Button';
 import { DataTable } from '../../shared/ui/DataTable';
 import { EmptyState } from '../../shared/ui/EmptyState';
@@ -23,9 +23,11 @@ export function UsersPage() {
       setUsers(Array.isArray(data) ? data : []);
       setError('');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load users';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to load users');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -49,9 +51,11 @@ export function UsersPage() {
       toast.success('User created');
       await loadUsers();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create user';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to create user');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -67,9 +71,11 @@ export function UsersPage() {
       toast.success(`User ${status === 'ACTIVE' ? 'activated' : 'disabled'}`);
       await loadUsers();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update status';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to update status');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     }
   };
 
@@ -84,9 +90,11 @@ export function UsersPage() {
       });
       toast.success('Password reset completed');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to reset password';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to reset password');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     }
   };
 

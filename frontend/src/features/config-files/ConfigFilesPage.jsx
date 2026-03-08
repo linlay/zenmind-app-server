@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { request } from '../../shared/api/apiClient';
+import { getErrorMessage, isHandledUnauthorizedError, request } from '../../shared/api/apiClient';
 import { formatTime } from '../../shared/utils/time';
 import { Button } from '../../shared/ui/Button';
 import { DataTable } from '../../shared/ui/DataTable';
@@ -53,9 +53,11 @@ export function ConfigFilesPage() {
       setSelectedPath((currentPath) => pickSelectedPath(list, preferredPath, currentPath));
       setError('');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load editable files';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to load editable files');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     } finally {
       setListLoading(false);
     }
@@ -76,9 +78,11 @@ export function ConfigFilesPage() {
       setSavedContent(nextContent);
       setError('');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load file content';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to load file content');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     } finally {
       setContentLoading(false);
     }
@@ -115,9 +119,11 @@ export function ConfigFilesPage() {
       toast.success('Configuration file saved');
       await loadFiles(fileKey(selectedFile));
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to save file';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to save file');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     } finally {
       setSaving(false);
     }

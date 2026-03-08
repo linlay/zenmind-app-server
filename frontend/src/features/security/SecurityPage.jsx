@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { request } from '../../shared/api/apiClient';
+import { getErrorMessage, isHandledUnauthorizedError, request } from '../../shared/api/apiClient';
 import { copyToClipboard } from '../../shared/utils/clipboard';
 import { formatTime } from '../../shared/utils/time';
 import { Badge } from '../../shared/ui/Badge';
@@ -88,9 +88,11 @@ export function SecurityPage() {
     try {
       await Promise.all([loadJwks(), loadNewDeviceAccess()]);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load security data';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to load security data');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -120,9 +122,11 @@ export function SecurityPage() {
       setSuccess('Issued app access token successfully');
       toast.success('Issued app access token successfully');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to issue app token';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to issue app token');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     }
   };
 
@@ -145,9 +149,11 @@ export function SecurityPage() {
       setSuccess('Refreshed app access token successfully');
       toast.success('Refreshed app access token successfully');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to refresh app token';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to refresh app token');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     }
   };
 
@@ -168,9 +174,11 @@ export function SecurityPage() {
       setSuccess('Generated public key successfully');
       toast.success('Generated public key successfully');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to generate public key';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to generate public key');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     }
   };
 
@@ -189,9 +197,11 @@ export function SecurityPage() {
       setSuccess(`New device access ${enabled ? 'enabled' : 'disabled'}`);
       toast.success(`New device access ${enabled ? 'enabled' : 'disabled'}`);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update new device access';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to update new device access');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     } finally {
       setUpdatingNewDeviceAccess(false);
     }

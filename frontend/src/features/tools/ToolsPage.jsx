@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { request } from '../../shared/api/apiClient';
+import { getErrorMessage, isHandledUnauthorizedError, request } from '../../shared/api/apiClient';
 import { copyToClipboard } from '../../shared/utils/clipboard';
 import { Button } from '../../shared/ui/Button';
 import { PageCard } from '../../shared/ui/PageCard';
@@ -38,9 +38,11 @@ export function ToolsPage() {
       setSuccess('Generated bcrypt successfully');
       toast.success('Generated bcrypt successfully');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to generate bcrypt';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to generate bcrypt');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     }
   };
 
@@ -58,9 +60,11 @@ export function ToolsPage() {
       setSuccess('Generated public key successfully');
       toast.success('Generated public key successfully');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to generate public key';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to generate public key');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     }
   };
 
@@ -76,9 +80,11 @@ export function ToolsPage() {
       setSuccess('Generated key pair successfully');
       toast.success('Generated key pair successfully');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to generate key pair';
-      setError(message);
-      toast.error(message);
+      const message = getErrorMessage(err, 'Failed to generate key pair');
+      if (!isHandledUnauthorizedError(err)) {
+        setError(message);
+        toast.error(message);
+      }
     }
   };
 
