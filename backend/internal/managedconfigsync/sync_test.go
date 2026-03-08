@@ -11,8 +11,8 @@ func TestSyncGeneratesRuntimeRegistryAndComposeBlock(t *testing.T) {
 	t.Parallel()
 
 	repoRoot := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(repoRoot, "release"), 0o755); err != nil {
-		t.Fatalf("mkdir release: %v", err)
+	if err := os.MkdirAll(filepath.Join(repoRoot, "configs"), 0o755); err != nil {
+		t.Fatalf("mkdir configs: %v", err)
 	}
 
 	registry := `files:
@@ -27,7 +27,7 @@ func TestSyncGeneratesRuntimeRegistryAndComposeBlock(t *testing.T) {
     sourcePath: ../worker/application.yml
     containerPath: /app/config/worker.application.yml
 `
-	if err := os.WriteFile(filepath.Join(repoRoot, "release", "config-files.yml"), []byte(registry), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoRoot, "configs", "config-files.yml"), []byte(registry), 0o644); err != nil {
 		t.Fatalf("write registry: %v", err)
 	}
 
@@ -50,7 +50,7 @@ func TestSyncGeneratesRuntimeRegistryAndComposeBlock(t *testing.T) {
 		t.Fatalf("sync: %v", err)
 	}
 
-	runtimeRaw, err := os.ReadFile(filepath.Join(repoRoot, "release", "config-files.runtime.yml"))
+	runtimeRaw, err := os.ReadFile(filepath.Join(repoRoot, "configs", "config-files.runtime.yml"))
 	if err != nil {
 		t.Fatalf("read runtime registry: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestSyncGeneratesRuntimeRegistryAndComposeBlock(t *testing.T) {
 	if !strings.Contains(composeText, "env_file:") || !strings.Contains(composeText, "- ./.env") {
 		t.Fatalf("compose missing env_file: %s", composeText)
 	}
-	if !strings.Contains(composeText, "source: ./release/config-files.runtime.yml") {
+	if !strings.Contains(composeText, "source: ./configs/config-files.runtime.yml") {
 		t.Fatalf("compose missing runtime registry mount: %s", composeText)
 	}
 	if !strings.Contains(composeText, "source: ./.env") {
@@ -85,10 +85,10 @@ func TestSyncRejectsDuplicateConfigIDs(t *testing.T) {
 	t.Parallel()
 
 	repoRoot := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(repoRoot, "release"), 0o755); err != nil {
-		t.Fatalf("mkdir release: %v", err)
+	if err := os.MkdirAll(filepath.Join(repoRoot, "configs"), 0o755); err != nil {
+		t.Fatalf("mkdir configs: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoRoot, "release", "config-files.yml"), []byte(`files:
+	if err := os.WriteFile(filepath.Join(repoRoot, "configs", "config-files.yml"), []byte(`files:
   - id: dup
     name: One
     type: env

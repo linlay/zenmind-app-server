@@ -192,7 +192,7 @@ export function ConfigFilesPage() {
           columns={columns}
           rows={files}
           rowKey={fileKey}
-          empty={<EmptyState title="No editable files configured" description="Configure release/config-files.yml and run make config-sync." />}
+          empty={<EmptyState title="No editable files configured" description="Configure configs/config-files.yml and run make config-sync." />}
         />
       </PageCard>
 

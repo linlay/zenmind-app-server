@@ -12,7 +12,7 @@ services:
         target: /data
       # BEGIN GENERATED CONFIG FILES VOLUMES
       - type: bind
-        source: ./release/config-files.runtime.yml
+        source: ./configs/config-files.runtime.yml
         target: /app/config/config-files.runtime.yml
       - type: bind
         source: ./.env

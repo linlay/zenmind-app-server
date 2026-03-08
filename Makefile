@@ -1,4 +1,4 @@
-.PHONY: backend-build backend-test frontend-build docker-build docker-up docker-down size-check config-sync
+.PHONY: backend-build backend-test frontend-build docker-build docker-up docker-down size-check config-sync clean
 
 backend-build:
 	cd backend && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags='-s -w -buildid=' -o app ./cmd/server
@@ -24,3 +24,7 @@ docker-down:
 size-check:
 	@echo "backend image size bytes:" && docker image inspect app-auth-backend --format '{{.Size}}'
 	@echo "frontend image size bytes:" && docker image inspect app-auth-frontend --format '{{.Size}}'
+
+clean:
+	rm -f backend/app
+	rm -f frontend/frontend-gateway

@@ -11,6 +11,7 @@ import (
 
 const (
 	runtimeRegistryContainerPath = "/app/config/config-files.runtime.yml"
+	configsDir                   = "configs"
 
 	volumeStartMarker = "      # BEGIN GENERATED CONFIG FILES VOLUMES"
 	volumeEndMarker   = "      # END GENERATED CONFIG FILES VOLUMES"
@@ -22,8 +23,8 @@ func Sync(repoRoot string) error {
 		return fmt.Errorf("resolve repo root failed: %w", err)
 	}
 
-	sourceRegistryPath := filepath.Join(root, "release", "config-files.yml")
-	runtimeRegistryPath := filepath.Join(root, "release", "config-files.runtime.yml")
+	sourceRegistryPath := filepath.Join(root, configsDir, "config-files.yml")
+	runtimeRegistryPath := filepath.Join(root, configsDir, "config-files.runtime.yml")
 	composePath := filepath.Join(root, "docker-compose.yml")
 
 	sourceRegistry, err := managedconfigregistry.LoadSource(sourceRegistryPath)
@@ -59,7 +60,7 @@ func Sync(repoRoot string) error {
 func renderVolumeBlock(registry *managedconfigregistry.RuntimeRegistry, repoRoot string) []string {
 	lines := []string{
 		"      - type: bind",
-		"        source: ./release/config-files.runtime.yml",
+		"        source: ./configs/config-files.runtime.yml",
 		"        target: " + runtimeRegistryContainerPath,
 	}
 	for _, file := range registry.Files {

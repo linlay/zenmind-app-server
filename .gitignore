@@ -13,9 +13,8 @@ frontend/frontend-gateway
 backend/app
 backend/coverage.out
 
-# build/release
-release/*
-!release/config-files.yml
+# managed configs
+configs/config-files.runtime.yml
 
 # data
 data/*.db
