@@ -3,32 +3,13 @@ services:
     image: zenmind-app-server-backend
     build:
       context: ./backend
-    container_name: backend
+    container_name: zenmind-app-server-backend
     env_file:
       - ./.env
     volumes:
-      - type: bind
-        source: ./data
-        target: /data
-      # BEGIN GENERATED CONFIG FILES VOLUMES
-      - type: bind
-        source: ./configs/config-files.runtime.yml
-        target: /app/config/config-files.runtime.yml
-      - type: bind
-        source: ./.env
-        target: /app/config/zenmind-root.env
-      - type: bind
-        source: ../mcp-server-mock/.env
-        target: /app/config/mcp-server-mock.env
-      - type: bind
-        source: ../term-webclient/release/.env
-        target: /app/config/term-webclient-release.env
-      - type: bind
-        source: ../term-webclient/release/application.yml
-        target: /app/config/term-webclient-release.application.yml
-      # END GENERATED CONFIG FILES VOLUMES
-    ports:
-      - "${BACKEND_PORT}:8080"
+      - ./data:/data
+    expose:
+      - "8080"
     networks:
       zenmind-network:
         aliases:
@@ -40,9 +21,12 @@ services:
       context: ./frontend
       args:
         VITE_BASE_PATH: ${VITE_BASE_PATH:-/admin/}
-    container_name: frontend
+    container_name: zenmind-app-server-frontend
     depends_on:
       - backend
+    environment:
+      BACKEND_TARGET: http://backend:8080
+      STATIC_DIR: /app/dist
     ports:
       - "${FRONTEND_PORT}:80"
     networks:

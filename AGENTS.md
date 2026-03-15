@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 ## 1. 项目概览
 
