@@ -6,6 +6,8 @@ services:
     container_name: zenmind-app-server-backend
     env_file:
       - ./.env
+    environment:
+      SERVER_PORT: "8080"
     volumes:
       - ./data:/data
     expose:

@@ -102,7 +102,7 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
-	port := envInt("SERVER_PORT", envInt("BACKEND_PORT", builtInDefaults.ServerPort))
+	port := envInt("SERVER_PORT", builtInDefaults.ServerPort)
 	cfg := &Config{
 		ServerPort:            port,
 		DBPath:                env("AUTH_DB_PATH", builtInDefaults.DBPath),

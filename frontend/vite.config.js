@@ -9,9 +9,7 @@ function loadRootEnv(mode, cwd) {
 }
 
 function resolveProxyTarget(env, cwd) {
-  const backendPortFromEnv = Number(env.BACKEND_PORT);
-  const backendPort = Number.isNaN(backendPortFromEnv) ? 8080 : backendPortFromEnv;
-  const localFallback = `http://localhost:${backendPort}`;
+  const localFallback = 'http://localhost:8080';
   const configured = env.VITE_API_PROXY_TARGET;
   if (!configured) {
     return localFallback;

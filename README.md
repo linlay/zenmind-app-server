@@ -32,6 +32,7 @@ docker compose up -d --build
 
 - 环境变量契约以根目录 `.env.example` 为准
 - 部署层只保留 `FRONTEND_PORT`；backend 不再暴露宿主机端口
+- `BACKEND_PORT` 不再是有效部署变量；backend 容器内固定监听 `8080`
 - `AUTH_ISSUER` 仍然必需，因为服务会用它生成 OIDC / OAuth2 metadata
 - 两个 bcrypt 仍然必填，推荐在写入 `.env` 时保留单引号
 - 数据默认挂载到 `./data`
@@ -48,3 +49,9 @@ docker compose up -d --build
 - 查看日志：`docker compose logs -f backend frontend`
 - OIDC metadata：`curl -i http://127.0.0.1:11950/openid/.well-known/openid-configuration`
 - bcrypt 生成接口：`POST /admin/api/bcrypt/generate`
+
+## 6. 本地前端开发
+
+- Vite 开发代理默认回落到 `http://localhost:8080`
+- 如需改代理目标，只使用 `VITE_API_PROXY_TARGET`
+- Docker 部署下仍只通过 frontend 网关访问 backend

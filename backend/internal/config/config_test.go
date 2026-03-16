@@ -72,6 +72,7 @@ func TestLoadEnvOverridesBuiltInDefaults(t *testing.T) {
 	t.Setenv("AUTH_CONFIG_FILES_REGISTRY_PATH", "")
 	t.Setenv("AUTH_EXTERNAL_EDITABLE_FILES", "")
 	t.Setenv("SERVER_PORT", "28080")
+	t.Setenv("BACKEND_PORT", "")
 	t.Setenv("AUTH_DB_PATH", "/tmp/auth.db")
 	t.Setenv("AUTH_ISSUER", "http://env.example:28080")
 	t.Setenv("AUTH_ADMIN_USERNAME", "env-admin")
@@ -109,6 +110,26 @@ func TestLoadEnvOverridesBuiltInDefaults(t *testing.T) {
 	}
 	if cfg.CleanupRetention != 6*time.Hour || cfg.CleanupCron != "0 */10 * * * *" {
 		t.Fatalf("unexpected cleanup overrides: retention=%s cron=%s", cfg.CleanupRetention, cfg.CleanupCron)
+	}
+}
+
+func TestLoadIgnoresBackendPortForServerPort(t *testing.T) {
+	tempDir := t.TempDir()
+	t.Chdir(tempDir)
+	t.Setenv("AUTH_CONFIG_FILES_REGISTRY_PATH", "")
+	t.Setenv("AUTH_EXTERNAL_EDITABLE_FILES", "")
+	t.Setenv("SERVER_PORT", "")
+	t.Setenv("BACKEND_PORT", "11952")
+	t.Setenv("AUTH_ADMIN_PASSWORD_BCRYPT", documentedDevBcrypt)
+	t.Setenv("AUTH_APP_MASTER_PASSWORD_BCRYPT", documentedDevBcrypt)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+
+	if cfg.ServerPort != builtInDefaults.ServerPort {
+		t.Fatalf("expected backend port env to be ignored, got: %d", cfg.ServerPort)
 	}
 }
 
