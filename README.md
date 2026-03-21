@@ -46,7 +46,7 @@ docker compose up -d --build
 
 ## 5. 运维
 
-- 查看日志：`docker compose logs -f backend frontend`
+- 查看日志：`docker compose logs -f app-server-backend app-server-frontend`
 - OIDC metadata：`curl -i http://127.0.0.1:11950/openid/.well-known/openid-configuration`
 - bcrypt 生成接口：`POST /admin/api/bcrypt/generate`
 

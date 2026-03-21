@@ -32,7 +32,7 @@ func TestSyncGeneratesRuntimeRegistryAndComposeBlock(t *testing.T) {
 	}
 
 	compose := `services:
-  backend:
+  app-server-backend:
     env_file:
       - ./.env
     volumes:
@@ -103,7 +103,7 @@ func TestSyncRejectsDuplicateConfigIDs(t *testing.T) {
 		t.Fatalf("write registry: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(repoRoot, "compose.yml"), []byte(`services:
-  backend:
+  app-server-backend:
     env_file:
       - ./.env
     volumes:

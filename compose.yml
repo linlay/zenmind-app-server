@@ -1,5 +1,5 @@
 services:
-  backend:
+  app-server-backend:
     image: app-server-backend
     build:
       context: ./backend
@@ -17,7 +17,7 @@ services:
         aliases:
           - app-server-backend
 
-  frontend:
+  app-server-frontend:
     image: app-server-frontend
     build:
       context: ./frontend
@@ -25,9 +25,9 @@ services:
         VITE_BASE_PATH: ${VITE_BASE_PATH:-/admin/}
     container_name: app-server-frontend
     depends_on:
-      - backend
+      - app-server-backend
     environment:
-      BACKEND_TARGET: http://backend:8080
+      BACKEND_TARGET: http://app-server-backend:8080
       STATIC_DIR: /app/dist
     ports:
       - "${FRONTEND_PORT}:80"

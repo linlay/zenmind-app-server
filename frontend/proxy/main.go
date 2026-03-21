@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	backendTarget := getenv("BACKEND_TARGET", "http://backend:8080")
+	backendTarget := getenv("BACKEND_TARGET", "http://app-server-backend:8080")
 	listenAddr := getenv("LISTEN_ADDR", ":80")
 	staticDir := getenv("STATIC_DIR", "/app/dist")
 

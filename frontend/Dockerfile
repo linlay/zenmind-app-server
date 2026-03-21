@@ -4,7 +4,7 @@ ARG VITE_BASE_PATH=/admin/
 ARG VITE_DEV_PORT=11950
 ARG VITE_DEV_STRICT_PORT=true
 ARG VITE_API_PROXY_PATH=/admin/api
-ARG VITE_API_PROXY_TARGET=http://backend:8080
+ARG VITE_API_PROXY_TARGET=http://app-server-backend:8080
 ENV VITE_BASE_PATH=$VITE_BASE_PATH \
     VITE_DEV_PORT=$VITE_DEV_PORT \
     VITE_DEV_STRICT_PORT=$VITE_DEV_STRICT_PORT \
@@ -25,6 +25,6 @@ WORKDIR /app
 COPY --from=proxy-build /out/frontend-gateway /app/frontend-gateway
 COPY --from=ui-build /app/dist /app/dist
 EXPOSE 80
-ENV BACKEND_TARGET=http://backend:8080
+ENV BACKEND_TARGET=http://app-server-backend:8080
 ENV STATIC_DIR=/app/dist
 ENTRYPOINT ["/app/frontend-gateway"]
