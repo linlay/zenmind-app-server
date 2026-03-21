@@ -39,7 +39,7 @@ docker compose up -d --build
 
 ## 4. 部署
 
-- `docker-compose.yml` 只负责双容器编排
+- `compose.yml` 只负责双容器编排
 - backend 容器网络端口固定为 `8080`
 - frontend 容器负责静态资源和反向代理
 - 若由总网关接入，不要再单独公开 backend 端口

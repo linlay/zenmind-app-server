@@ -28,7 +28,7 @@
 ## 4. 目录结构
 
 - `.env.example`：部署环境变量契约
-- `docker-compose.yml`：双容器本地编排
+- `compose.yml`：双容器本地编排
 - `backend/`：Go 服务
 - `frontend/`：管理台和前端网关
 - `data/`：SQLite 持久化目录

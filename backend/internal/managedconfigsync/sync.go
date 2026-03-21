@@ -25,7 +25,7 @@ func Sync(repoRoot string) error {
 
 	sourceRegistryPath := filepath.Join(root, configsDir, "config-files.yml")
 	runtimeRegistryPath := filepath.Join(root, configsDir, "config-files.runtime.yml")
-	composePath := filepath.Join(root, "docker-compose.yml")
+	composePath := filepath.Join(root, "compose.yml")
 
 	sourceRegistry, err := managedconfigregistry.LoadSource(sourceRegistryPath)
 	if err != nil {

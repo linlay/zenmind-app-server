@@ -1,9 +1,9 @@
 services:
   backend:
-    image: zenmind-app-server-backend
+    image: app-server-backend
     build:
       context: ./backend
-    container_name: zenmind-app-server-backend
+    container_name: app-server-backend
     env_file:
       - ./.env
     environment:
@@ -18,12 +18,12 @@ services:
           - app-server-backend
 
   frontend:
-    image: zenmind-app-server-frontend
+    image: app-server-frontend
     build:
       context: ./frontend
       args:
         VITE_BASE_PATH: ${VITE_BASE_PATH:-/admin/}
-    container_name: zenmind-app-server-frontend
+    container_name: app-server-frontend
     depends_on:
       - backend
     environment:

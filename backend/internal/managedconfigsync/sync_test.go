@@ -42,7 +42,7 @@ func TestSyncGeneratesRuntimeRegistryAndComposeBlock(t *testing.T) {
       # BEGIN GENERATED CONFIG FILES VOLUMES
       # END GENERATED CONFIG FILES VOLUMES
 `
-	if err := os.WriteFile(filepath.Join(repoRoot, "docker-compose.yml"), []byte(compose), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repoRoot, "compose.yml"), []byte(compose), 0o644); err != nil {
 		t.Fatalf("write compose: %v", err)
 	}
 
@@ -62,7 +62,7 @@ func TestSyncGeneratesRuntimeRegistryAndComposeBlock(t *testing.T) {
 		t.Fatalf("runtime registry missing resolved worker host path: %s", runtimeText)
 	}
 
-	composeRaw, err := os.ReadFile(filepath.Join(repoRoot, "docker-compose.yml"))
+	composeRaw, err := os.ReadFile(filepath.Join(repoRoot, "compose.yml"))
 	if err != nil {
 		t.Fatalf("read updated compose: %v", err)
 	}
@@ -102,7 +102,7 @@ func TestSyncRejectsDuplicateConfigIDs(t *testing.T) {
 `), 0o644); err != nil {
 		t.Fatalf("write registry: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repoRoot, "docker-compose.yml"), []byte(`services:
+	if err := os.WriteFile(filepath.Join(repoRoot, "compose.yml"), []byte(`services:
   backend:
     env_file:
       - ./.env
