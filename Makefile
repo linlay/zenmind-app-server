@@ -1,4 +1,7 @@
-.PHONY: backend-build backend-test frontend-build docker-build docker-up docker-down size-check config-sync clean
+VERSION := $(shell cat VERSION 2>/dev/null)
+ARCH := $(shell uname -m | sed 's/^x86_64$$/amd64/' | sed 's/^aarch64$$/arm64/' | sed 's/^arm64$$/arm64/' | sed 's/^amd64$$/amd64/')
+
+.PHONY: backend-build backend-test frontend-build docker-build docker-up docker-down size-check config-sync release clean
 
 backend-build:
 	cd backend && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags='-s -w -buildid=' -o app ./cmd/server
@@ -22,8 +25,11 @@ docker-down:
 	docker compose down
 
 size-check:
-	@echo "backend image size bytes:" && docker image inspect app-auth-backend --format '{{.Size}}'
-	@echo "frontend image size bytes:" && docker image inspect app-auth-frontend --format '{{.Size}}'
+	@echo "backend image size bytes:" && docker image inspect app-server-backend --format '{{.Size}}'
+	@echo "frontend image size bytes:" && docker image inspect app-server-frontend --format '{{.Size}}'
+
+release:
+	VERSION=$(VERSION) ARCH=$(ARCH) bash scripts/release.sh
 
 clean:
 	rm -f backend/app

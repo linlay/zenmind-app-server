@@ -1,5 +1,9 @@
-FROM node:20-alpine AS ui-build
+ARG NODE_BUILD_IMAGE=node:20-alpine
+ARG GO_BUILD_IMAGE=golang:1.23-alpine
+
+FROM ${NODE_BUILD_IMAGE} AS ui-build
 WORKDIR /app
+ARG NPM_REGISTRY=https://registry.npmjs.org
 ARG VITE_BASE_PATH=/admin/
 ARG VITE_DEV_PORT=11950
 ARG VITE_DEV_STRICT_PORT=true
@@ -11,14 +15,18 @@ ENV VITE_BASE_PATH=$VITE_BASE_PATH \
     VITE_API_PROXY_PATH=$VITE_API_PROXY_PATH \
     VITE_API_PROXY_TARGET=$VITE_API_PROXY_TARGET
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm config set registry "$NPM_REGISTRY" && npm ci
 COPY . .
 RUN npm run build
 
-FROM golang:1.23-alpine AS proxy-build
+FROM ${GO_BUILD_IMAGE} AS proxy-build
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+ARG GOPROXY=https://proxy.golang.org,direct
+ENV GOPROXY=$GOPROXY
 WORKDIR /src
 COPY proxy ./proxy
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags='-s -w -buildid=' -o /out/frontend-gateway ./proxy/main.go
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags='-s -w -buildid=' -o /out/frontend-gateway ./proxy/main.go
 
 FROM scratch
 WORKDIR /app

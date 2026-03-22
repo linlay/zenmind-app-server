@@ -1,0 +1,26 @@
+name: zenmind-app-server
+
+services:
+  app-server-backend:
+    container_name: app-server-backend
+    image: app-server-backend:${APP_SERVER_VERSION:-latest}
+    env_file:
+      - path: .env
+        format: raw
+    environment:
+      SERVER_PORT: "8080"
+    volumes:
+      - ./data:/data
+    expose:
+      - "8080"
+
+  app-server-frontend:
+    container_name: app-server-frontend
+    image: app-server-frontend:${APP_SERVER_VERSION:-latest}
+    depends_on:
+      - app-server-backend
+    environment:
+      BACKEND_TARGET: http://app-server-backend:8080
+      STATIC_DIR: /app/dist
+    ports:
+      - "${FRONTEND_PORT:-11950}:80"

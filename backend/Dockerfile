@@ -1,9 +1,14 @@
-FROM golang:1.23-alpine AS build
+ARG GO_BUILD_IMAGE=golang:1.23-alpine
+FROM ${GO_BUILD_IMAGE} AS build
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+ARG GOPROXY=https://proxy.golang.org,direct
+ENV GOPROXY=$GOPROXY
 WORKDIR /src
 COPY go.mod ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags='-s -w -buildid=' -o /out/app ./cmd/server
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags='-s -w -buildid=' -o /out/app ./cmd/server
 
 FROM scratch
 WORKDIR /app

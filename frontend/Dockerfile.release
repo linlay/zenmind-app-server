@@ -1,0 +1,8 @@
+FROM scratch
+WORKDIR /app
+COPY frontend-gateway /app/frontend-gateway
+COPY dist /app/dist
+EXPOSE 80
+ENV BACKEND_TARGET=http://app-server-backend:8080
+ENV STATIC_DIR=/app/dist
+ENTRYPOINT ["/app/frontend-gateway"]

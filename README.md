@@ -8,6 +8,7 @@
 
 - backend 固定只在容器网络内监听 `8080`
 - frontend 对外暴露 `/admin/`
+- release bundle 支持按版本离线部署
 - 根目录 `.env.example` 只保留部署必要项
 - 外部“受管配置文件”不再作为默认部署契约
 
@@ -17,6 +18,21 @@
 cp .env.example .env
 docker compose up -d --build
 ```
+
+版本化离线发布包：
+
+```bash
+make release
+```
+
+说明：
+
+- 统一使用 `make release`。
+- `make release` 会先在宿主机完成 Go / npm 构建，再由 Docker 只把现成产物打进 release 镜像。
+- `make release` 默认使用 `https://goproxy.cn,direct` 和 `https://registry.npmmirror.com` 作为宿主机构建依赖源。
+- 若构建机需要代理，请配置宿主机上的 `go` / `npm` 访问环境；代理只是可选辅助，不再是 release 默认成功路径的前提。
+- 离线的是部署端，不是构建端。首次执行发布时，打包机仍需要可用的 Docker / buildx、Go 和 npm，以及宿主机可访问所需依赖源或已有本地缓存。
+- 如需官方源、私有源或其它自定义源，仍可显式传入 `GOPROXY`、`NPM_REGISTRY` 覆盖默认值。
 
 默认入口：
 
@@ -31,6 +47,7 @@ docker compose up -d --build
 ## 3. 配置说明
 
 - 环境变量契约以根目录 `.env.example` 为准
+- `APP_SERVER_VERSION` 用于 release bundle 选择镜像标签
 - 部署层只保留 `FRONTEND_PORT`；backend 不再暴露宿主机端口
 - `BACKEND_PORT` 不再是有效部署变量；backend 容器内固定监听 `8080`
 - `AUTH_ISSUER` 仍然必需，因为服务会用它生成 OIDC / OAuth2 metadata
@@ -40,9 +57,11 @@ docker compose up -d --build
 ## 4. 部署
 
 - `compose.yml` 只负责双容器编排
+- `make release` 会生成带版本号的离线 bundle 到 `dist/release/`
 - backend 容器网络端口固定为 `8080`
 - frontend 容器负责静态资源和反向代理
 - 若由总网关接入，不要再单独公开 backend 端口
+- 版本化打包说明见 `docs/versioned-release-bundle.md`
 
 ## 5. 运维
 
