@@ -14,7 +14,7 @@ zenmind-app-server — 离线部署包
 ========
 
 .env.example                  — 环境变量模板
-docker-compose.release.yml    — 容器编排
+compose.release.yml           — 容器编排
 start.sh                      — 启动脚本（会按需加载 images/*.tar）
 stop.sh                       — 停止脚本
 README.txt                    — 本文件

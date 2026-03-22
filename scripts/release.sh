@@ -41,7 +41,7 @@ require_file "$REPO_ROOT/backend/Dockerfile.release"
 require_file "$REPO_ROOT/frontend/Dockerfile.release"
 require_file "$REPO_ROOT/backend/go.mod"
 require_file "$REPO_ROOT/frontend/package.json"
-require_file "$RELEASE_ASSETS_DIR/docker-compose.release.yml"
+require_file "$RELEASE_ASSETS_DIR/compose.release.yml"
 require_file "$RELEASE_ASSETS_DIR/start.sh"
 require_file "$RELEASE_ASSETS_DIR/stop.sh"
 require_file "$RELEASE_ASSETS_DIR/README.txt"
@@ -142,7 +142,7 @@ docker buildx build \
   --output "type=docker,dest=$IMAGES_DIR/app-server-frontend.tar" \
   "$FRONTEND_BUILD_DIR"
 
-cp "$RELEASE_ASSETS_DIR/docker-compose.release.yml" "$BUNDLE_ROOT/docker-compose.release.yml"
+cp "$RELEASE_ASSETS_DIR/compose.release.yml" "$BUNDLE_ROOT/compose.release.yml"
 cp "$RELEASE_ASSETS_DIR/start.sh" "$BUNDLE_ROOT/start.sh"
 cp "$RELEASE_ASSETS_DIR/stop.sh" "$BUNDLE_ROOT/stop.sh"
 cp "$RELEASE_ASSETS_DIR/README.txt" "$BUNDLE_ROOT/README.txt"

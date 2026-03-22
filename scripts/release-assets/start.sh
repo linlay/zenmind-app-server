@@ -3,13 +3,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env"
-COMPOSE_FILE="$SCRIPT_DIR/docker-compose.release.yml"
+COMPOSE_FILE="$SCRIPT_DIR/compose.release.yml"
 IMAGES_DIR="$SCRIPT_DIR/images"
 
 die() { echo "[start] $*" >&2; exit 1; }
 
 [[ -f "$ENV_FILE" ]] || die "missing .env (copy from .env.example first)"
-[[ -f "$COMPOSE_FILE" ]] || die "missing docker-compose.release.yml"
+[[ -f "$COMPOSE_FILE" ]] || die "missing compose.release.yml"
 
 command -v docker >/dev/null 2>&1 || die "docker is required"
 docker compose version >/dev/null 2>&1 || die "docker compose v2 is required"

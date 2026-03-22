@@ -76,7 +76,7 @@ make release VERSION=v1.0.0 ARCH=amd64
 - 打包机环境：可用的 Docker Engine、docker buildx、Go、npm，以及宿主机访问依赖源所需的网络或本地缓存
 - 可覆盖构建参数：`GOPROXY`、`NPM_REGISTRY`
 - release 容器打包定义：`backend/Dockerfile.release`、`frontend/Dockerfile.release`
-- release 模板资产：`scripts/release-assets/docker-compose.release.yml`
+- release 模板资产：`scripts/release-assets/compose.release.yml`
 - release 模板资产：`scripts/release-assets/start.sh`
 - release 模板资产：`scripts/release-assets/stop.sh`
 - release 模板资产：`scripts/release-assets/README.txt`
@@ -118,7 +118,7 @@ make release VERSION=v1.0.0 ARCH=amd64
 
 - `images/app-server-backend.tar`
 - `images/app-server-frontend.tar`
-- `docker-compose.release.yml`
+- `compose.release.yml`
 - `start.sh`
 - `stop.sh`
 - `README.txt`
@@ -144,7 +144,7 @@ bundle 解压后目录大致如下：
 ```text
 zenmind-app-server/
   .env.example
-  docker-compose.release.yml
+  compose.release.yml
   start.sh
   stop.sh
   README.txt
@@ -180,7 +180,7 @@ cp .env.example .env
 3. 从 `.env` 读取 `APP_SERVER_VERSION` 和 `FRONTEND_PORT`。
 4. 如果本机没有 `app-server-backend:$APP_SERVER_VERSION` 或 `app-server-frontend:$APP_SERVER_VERSION`，就从 `images/*.tar` 自动执行 `docker load`。
 5. 创建 `data/` 目录。
-6. 执行 `docker compose -f docker-compose.release.yml up -d`。
+6. 执行 `docker compose -f compose.release.yml up -d`。
 
 启动完成后，默认浏览器入口为：
 
@@ -188,7 +188,7 @@ cp .env.example .env
 http://127.0.0.1:${FRONTEND_PORT}/admin/
 ```
 
-### 5.1 `docker-compose.release.yml` 的角色
+### 5.1 `compose.release.yml` 的角色
 
 release compose 和开发 compose 的思路不同：
 
@@ -207,7 +207,7 @@ release compose 和开发 compose 的思路不同：
 `stop.sh` 使用同一份 compose 文件执行：
 
 ```bash
-docker compose -f docker-compose.release.yml down --remove-orphans
+docker compose -f compose.release.yml down --remove-orphans
 ```
 
 它的职责很单纯：停止由 bundle 启动的 release 容器。
@@ -285,7 +285,7 @@ RELEASE_DRY_RUN=1 make release
 - `VERSION`
 - `Makefile`
 - `scripts/release.sh`
-- `scripts/release-assets/docker-compose.release.yml`
+- `scripts/release-assets/compose.release.yml`
 - `scripts/release-assets/start.sh`
 - `scripts/release-assets/stop.sh`
 - `scripts/release-assets/README.txt`
