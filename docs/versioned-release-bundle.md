@@ -121,6 +121,7 @@ make release VERSION=v1.0.0 ARCH=amd64
 - `compose.release.yml`
 - `start.sh`
 - `stop.sh`
+- `setup-public-key.sh`
 - `README.txt`
 - `.env.example`
 - 空的 `data/` 目录
@@ -147,6 +148,7 @@ zenmind-app-server/
   compose.release.yml
   start.sh
   stop.sh
+  setup-public-key.sh
   README.txt
   images/
     app-server-backend.tar
@@ -157,7 +159,6 @@ zenmind-app-server/
 和开发态仓库不同，release bundle 不默认携带：
 
 - `configs/config-files.yml`
-- `release-scripts/`
 - 外部可编辑配置文件挂载能力
 
 这些能力仍保留在源码仓库里，但不属于首版默认离线部署模型。
@@ -172,6 +173,18 @@ cd zenmind-app-server
 cp .env.example .env
 ./start.sh
 ```
+
+如需给外部 public key 服务提供 PEM，可直接执行：
+
+```bash
+./setup-public-key.sh
+```
+
+默认会导出：
+
+- `./data/keys/jwk-public.pem`
+- `./data/keys/jwk-private.pem`
+- `./data/keys/publicKey.pem`
 
 `start.sh` 会按顺序完成：
 
@@ -211,6 +224,36 @@ docker compose -f compose.release.yml down --remove-orphans
 ```
 
 它的职责很单纯：停止由 bundle 启动的 release 容器。
+
+### 5.3 `setup-public-key.sh` 做了什么
+
+`setup-public-key.sh` 是 release bundle 自带的 JWK 导出脚本，适用于 macOS、Linux 和 WSL。它会：
+
+1. 确保 SQLite 里的 `JWK_KEY_` 存在可用 key。
+2. 在默认目录 `./data/keys/` 导出 `jwk-public.pem` 和 `jwk-private.pem`。
+3. 额外复制一份 `publicKey.pem` 供外部服务直接消费。
+
+默认用法：
+
+```bash
+./setup-public-key.sh
+```
+
+如需轮换 key：
+
+```bash
+./setup-public-key.sh --mode rotate
+```
+
+依赖要求：
+
+- `openssl`
+- `sqlite3`
+
+注意：
+
+- Windows 部署统一通过 WSL 执行该脚本，不再提供 PowerShell 版本。
+- 轮换 key 会使之前签发的 app access token 失效，执行后应重启 backend。
 
 ## 6. 升级、回滚与交付建议
 

@@ -1,33 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_NAME="$(basename "$0")"
+
 MODE="bootstrap"
 DB_PATH="${AUTH_DB_PATH:-./data/auth.db}"
 OUT_DIR="${KEY_OUTPUT_DIR:-./data/keys}"
+PUBLIC_OUT=""
 KEY_ID="${JWK_KEY_ID:-}"
 
 usage() {
-  cat <<'EOF'
+  cat <<EOF
 Usage:
-  ./release-scripts/mac/manage-jwk-key.sh [--mode bootstrap|rotate] [--db <sqlite_db_path>] [--out <output_dir>] [--key-id <kid>]
+  ./$SCRIPT_NAME [--mode bootstrap|rotate] [--db <sqlite_db_path>] [--out <output_dir>] [--public-out <public_key_file_path>] [--key-id <kid>]
 
-Modes:
-  bootstrap  Create key pair only when JWK_KEY_ has no row. If key already exists, export existing pair.
-  rotate     Replace all rows in JWK_KEY_ with a newly generated key pair.
+What it does:
+  1) Ensure JWK key pair exists in auth db (or rotate when --mode rotate)
+  2) Export jwk-public.pem / jwk-private.pem to --out
+  3) Copy public key to --public-out (default: <out>/publicKey.pem)
 
 Examples:
-  ./release-scripts/mac/manage-jwk-key.sh --mode bootstrap --db ./data/auth.db --out ./data/keys
-  ./release-scripts/mac/manage-jwk-key.sh --mode rotate --db ./data/auth.db --out ./data/keys
+  ./$SCRIPT_NAME --db ./data/auth.db --out ./data/keys
+  ./$SCRIPT_NAME --mode rotate --db ./data/auth.db --out ./data/keys --public-out ./data/keys/publicKey.pem
 EOF
 }
 
 log() {
-  printf '[jwk-key] %s\n' "$*"
+  printf '[setup-public-key] %s\n' "$*"
 }
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
-    printf '[jwk-key] missing required command: %s\n' "$1" >&2
+    printf '[setup-public-key] missing required command: %s\n' "$1" >&2
     exit 1
   fi
 }
@@ -46,6 +50,10 @@ while [ $# -gt 0 ]; do
       OUT_DIR="${2:-}"
       shift 2
       ;;
+    --public-out)
+      PUBLIC_OUT="${2:-}"
+      shift 2
+      ;;
     --key-id)
       KEY_ID="${2:-}"
       shift 2
@@ -55,7 +63,7 @@ while [ $# -gt 0 ]; do
       exit 0
       ;;
     *)
-      printf '[jwk-key] unknown argument: %s\n' "$1" >&2
+      printf '[setup-public-key] unknown argument: %s\n' "$1" >&2
       usage >&2
       exit 1
       ;;
@@ -63,15 +71,17 @@ while [ $# -gt 0 ]; do
 done
 
 if [ "$MODE" != "bootstrap" ] && [ "$MODE" != "rotate" ]; then
-  printf '[jwk-key] invalid mode: %s (must be bootstrap or rotate)\n' "$MODE" >&2
+  printf '[setup-public-key] invalid --mode: %s (must be bootstrap or rotate)\n' "$MODE" >&2
   exit 1
 fi
 
-if [ -n "$KEY_ID" ]; then
-  if ! printf '%s' "$KEY_ID" | grep -Eq '^[A-Za-z0-9._-]+$'; then
-    printf '[jwk-key] invalid --key-id; allowed chars: A-Za-z0-9._-\n' >&2
-    exit 1
-  fi
+if [ -n "$KEY_ID" ] && ! printf '%s' "$KEY_ID" | grep -Eq '^[A-Za-z0-9._-]+$'; then
+  printf '[setup-public-key] invalid --key-id; allowed chars: A-Za-z0-9._-\n' >&2
+  exit 1
+fi
+
+if [ -z "$PUBLIC_OUT" ]; then
+  PUBLIC_OUT="$OUT_DIR/publicKey.pem"
 fi
 
 require_cmd openssl
@@ -104,6 +114,9 @@ export_pair_from_base64() {
   openssl pkey -pubin -inform DER -outform PEM -in "$public_der" -out "$OUT_DIR/jwk-public.pem" >/dev/null 2>&1
   openssl pkcs8 -inform DER -outform PEM -nocrypt -in "$private_der" -out "$OUT_DIR/jwk-private.pem" >/dev/null 2>&1
 
+  mkdir -p "$(dirname "$PUBLIC_OUT")"
+  cp "$OUT_DIR/jwk-public.pem" "$PUBLIC_OUT"
+
   log "exported existing key pair (kid=$key_id)"
 }
 
@@ -114,6 +127,8 @@ if [ "$MODE" = "bootstrap" ] && [ -n "$existing_row" ]; then
   export_pair_from_base64 "$existing_kid" "$existing_pub_b64" "$existing_priv_b64"
   log "public key:  $OUT_DIR/jwk-public.pem"
   log "private key: $OUT_DIR/jwk-private.pem"
+  log "public key exported: $PUBLIC_OUT"
+  log "done"
   exit 0
 fi
 
@@ -140,9 +155,16 @@ sqlite3 "$DB_PATH" "INSERT INTO JWK_KEY_(KEY_ID_, PUBLIC_KEY_, PRIVATE_KEY_, CRE
 cp "$private_pem" "$OUT_DIR/jwk-private.pem"
 cp "$public_pem" "$OUT_DIR/jwk-public.pem"
 
+mkdir -p "$(dirname "$PUBLIC_OUT")"
+cp "$public_pem" "$PUBLIC_OUT"
+
 log "generated and stored new key pair (kid=$KEY_ID)"
 log "db path:      $DB_PATH"
 log "public key:   $OUT_DIR/jwk-public.pem"
 log "private key:  $OUT_DIR/jwk-private.pem"
-log "note: rotating key invalidates previously issued app access tokens."
-log "note: restart backend after rotate so OAuth2 JWK source reloads the new key."
+log "public key exported: $PUBLIC_OUT"
+if [ "$MODE" = "rotate" ]; then
+  log "note: rotating key invalidates previously issued app access tokens."
+  log "note: restart backend after rotate so OAuth2 JWK source reloads the new key."
+fi
+log "done"
