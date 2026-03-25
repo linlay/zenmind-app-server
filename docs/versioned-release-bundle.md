@@ -149,6 +149,7 @@ zenmind-app-server/
   start.sh
   stop.sh
   setup-public-key.sh
+  issue-bridge-access-token.sh
   README.txt
   images/
     app-server-backend.tar
@@ -179,6 +180,14 @@ cp .env.example .env
 ```bash
 ./setup-public-key.sh
 ```
+
+如需给外部 bridge 调用方生成一个 app access token，可直接执行：
+
+```bash
+./issue-bridge-access-token.sh
+```
+
+脚本成功时会只向 `stdout` 输出 token 本体，方便其他程序直接捕获。
 
 默认会导出：
 
@@ -254,6 +263,37 @@ docker compose -f compose.release.yml down --remove-orphans
 
 - Windows 部署统一通过 WSL 执行该脚本，不再提供 PowerShell 版本。
 - 轮换 key 会使之前签发的 app access token 失效，执行后应重启 backend。
+
+### 5.4 `issue-bridge-access-token.sh` 做了什么
+
+`issue-bridge-access-token.sh` 是 release bundle 自带的 bridge token 生成脚本，适用于 macOS、Linux 和 WSL。它会：
+
+1. 复用同名 ACTIVE 设备，或按需创建一个新的 bridge 设备。
+2. 使用 SQLite 里最早的一把 JWK 私钥签发 RS256 app access token。
+3. 生成一个不带 `exp` 的 token，并在 `TOKEN_AUDIT_` 中写入 `EXPIRES_AT_ = NULL` 的审计记录。
+
+默认用法：
+
+```bash
+./issue-bridge-access-token.sh
+```
+
+指定 bridge 设备名：
+
+```bash
+./issue-bridge-access-token.sh --device-name "wechat-bridge"
+```
+
+依赖要求：
+
+- `openssl`
+- `sqlite3`
+
+注意：
+
+- 成功时 `stdout` 只输出 access token，日志和错误信息走 `stderr`。
+- 如数据库中还没有 JWK key，需先执行 `./setup-public-key.sh`。
+- 当前 backend 仍会把不带 `exp` 的 app token 当作已过期；这个脚本主要用于外部调用方先生成和管理该类 token。
 
 ## 6. 升级、回滚与交付建议
 
