@@ -46,6 +46,7 @@ require_file "$RELEASE_ASSETS_DIR/start.sh"
 require_file "$RELEASE_ASSETS_DIR/stop.sh"
 require_file "$RELEASE_ASSETS_DIR/setup-public-key.sh"
 require_file "$RELEASE_ASSETS_DIR/issue-bridge-access-token.sh"
+require_file "$RELEASE_ASSETS_DIR/issue-bridge-runner-token.sh"
 require_file "$RELEASE_ASSETS_DIR/README.txt"
 
 ROOT_ENV_SOURCE="$REPO_ROOT/.env.example"
@@ -149,6 +150,7 @@ cp "$RELEASE_ASSETS_DIR/start.sh" "$BUNDLE_ROOT/start.sh"
 cp "$RELEASE_ASSETS_DIR/stop.sh" "$BUNDLE_ROOT/stop.sh"
 cp "$RELEASE_ASSETS_DIR/setup-public-key.sh" "$BUNDLE_ROOT/setup-public-key.sh"
 cp "$RELEASE_ASSETS_DIR/issue-bridge-access-token.sh" "$BUNDLE_ROOT/issue-bridge-access-token.sh"
+cp "$RELEASE_ASSETS_DIR/issue-bridge-runner-token.sh" "$BUNDLE_ROOT/issue-bridge-runner-token.sh"
 cp "$RELEASE_ASSETS_DIR/README.txt" "$BUNDLE_ROOT/README.txt"
 cp "$REPO_ROOT/.env.example" "$BUNDLE_ROOT/.env.example"
 cp "$IMAGES_DIR/app-server-backend.tar" "$BUNDLE_ROOT/images/app-server-backend.tar"
@@ -158,7 +160,7 @@ sed -i.bak "s/^APP_SERVER_VERSION=.*/APP_SERVER_VERSION=$VERSION/" "$BUNDLE_ROOT
 rm -f "$BUNDLE_ROOT/.env.example.bak"
 grep -q "^APP_SERVER_VERSION=$VERSION$" "$BUNDLE_ROOT/.env.example" || die "failed to set APP_SERVER_VERSION in bundle .env.example"
 
-chmod +x "$BUNDLE_ROOT/start.sh" "$BUNDLE_ROOT/stop.sh" "$BUNDLE_ROOT/setup-public-key.sh" "$BUNDLE_ROOT/issue-bridge-access-token.sh"
+chmod +x "$BUNDLE_ROOT/start.sh" "$BUNDLE_ROOT/stop.sh" "$BUNDLE_ROOT/setup-public-key.sh" "$BUNDLE_ROOT/issue-bridge-access-token.sh" "$BUNDLE_ROOT/issue-bridge-runner-token.sh"
 
 mkdir -p "$(dirname "$BUNDLE_TAR")"
 tar -czf "$BUNDLE_TAR" -C "$TMP_DIR" zenmind-app-server

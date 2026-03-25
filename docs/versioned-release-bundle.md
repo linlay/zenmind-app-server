@@ -270,7 +270,7 @@ docker compose -f compose.release.yml down --remove-orphans
 
 1. 复用同名 ACTIVE 设备，或按需创建一个新的 bridge 设备。
 2. 使用 SQLite 里最早的一把 JWK 私钥签发 RS256 app access token。
-3. 生成一个不带 `exp` 的 token，并在 `TOKEN_AUDIT_` 中写入 `EXPIRES_AT_ = NULL` 的审计记录。
+3. 生成一个默认有效期为 1 年的 token，并在 `TOKEN_AUDIT_` 中写入相同过期时间的审计记录。
 
 默认用法：
 
@@ -293,7 +293,7 @@ docker compose -f compose.release.yml down --remove-orphans
 
 - 成功时 `stdout` 只输出 access token，日志和错误信息走 `stderr`。
 - 如数据库中还没有 JWK key，需先执行 `./setup-public-key.sh`。
-- 当前 backend 仍会把不带 `exp` 的 app token 当作已过期；这个脚本主要用于外部调用方先生成和管理该类 token。
+- 脚本生成的 token 带有 1 年后的 `exp`，与当前 backend 的 app token 过期校验逻辑兼容。
 
 ## 6. 升级、回滚与交付建议
 

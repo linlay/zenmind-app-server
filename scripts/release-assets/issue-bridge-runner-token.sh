@@ -7,28 +7,28 @@ DB_PATH="${AUTH_DB_PATH:-./data/auth.db}"
 ISSUER="${AUTH_ISSUER:-http://localhost:8080}"
 USERNAME="${AUTH_APP_USERNAME:-app}"
 DEVICE_NAME="WeChat Bridge"
-ACCESS_TTL_SECONDS=31536000
+TTL_SECONDS="${BRIDGE_RUNNER_TOKEN_TTL_SECONDS:-315360000}"
 PLACEHOLDER_DEVICE_TOKEN_BCRYPT='$2a$10$7J8GmW8J0tR9o5Z8L4m5Uuu6fQW4j6mJjM7qY0Q8n2rM5b3y1fVwK'
 
 usage() {
   cat <<EOF
 Usage:
-  ./$SCRIPT_NAME [--db <sqlite_db_path>] [--issuer <issuer>] [--username <subject>] [--device-name <bridge_device_name>]
+  ./$SCRIPT_NAME [--db <sqlite_db_path>] [--issuer <issuer>] [--username <subject>] [--device-name <bridge_device_name>] [--ttl-seconds <seconds>]
 
 What it does:
   1) Reuse or create one ACTIVE bridge device in SQLite
-  2) Sign an RS256 app access token with a 1-year exp using the first JWK private key
-  3) Upsert a TOKEN_AUDIT_ record with the same 1-year expiry
+  2) Sign an RS256 app access token with exp using the first JWK private key
+  3) Upsert a TOKEN_AUDIT_ record with a real EXPIRES_AT_ timestamp
 
 Examples:
   ./$SCRIPT_NAME
-  ./$SCRIPT_NAME --device-name "wechat-bridge"
+  ./$SCRIPT_NAME --device-name "wechat-bridge" --ttl-seconds 315360000
   AUTH_ISSUER=https://auth.example.com ./$SCRIPT_NAME
 EOF
 }
 
 log() {
-  printf '[issue-bridge-access-token] %s\n' "$*" >&2
+  printf '[issue-bridge-runner-token] %s\n' "$*" >&2
 }
 
 require_cmd() {
@@ -75,20 +75,6 @@ make_uuid() {
     "${hex:20:12}"
 }
 
-format_utc_sql_time() {
-  local unix_ts="$1"
-  if date -u -r "$unix_ts" '+%Y-%m-%d %H:%M:%S' >/dev/null 2>&1; then
-    date -u -r "$unix_ts" '+%Y-%m-%d %H:%M:%S'
-    return
-  fi
-  if date -u -d "@$unix_ts" '+%Y-%m-%d %H:%M:%S' >/dev/null 2>&1; then
-    date -u -d "@$unix_ts" '+%Y-%m-%d %H:%M:%S'
-    return
-  fi
-  log "failed to format unix timestamp: $unix_ts"
-  exit 1
-}
-
 while [ $# -gt 0 ]; do
   case "$1" in
     --db)
@@ -107,6 +93,10 @@ while [ $# -gt 0 ]; do
       DEVICE_NAME="${2:-}"
       shift 2
       ;;
+    --ttl-seconds)
+      TTL_SECONDS="${2:-}"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -123,6 +113,7 @@ DB_PATH="$(trim "$DB_PATH")"
 ISSUER="$(trim "$ISSUER")"
 USERNAME="$(trim "$USERNAME")"
 DEVICE_NAME="$(trim "$DEVICE_NAME")"
+TTL_SECONDS="$(trim "$TTL_SECONDS")"
 
 if [ -z "$DB_PATH" ]; then
   log "db path is required"
@@ -142,6 +133,16 @@ if [ -z "$DEVICE_NAME" ]; then
 fi
 if [ ${#DEVICE_NAME} -gt 64 ]; then
   DEVICE_NAME="${DEVICE_NAME:0:64}"
+fi
+case "$TTL_SECONDS" in
+  ''|*[!0-9]*)
+    log "ttl-seconds must be a positive integer"
+    exit 1
+    ;;
+esac
+if [ "$TTL_SECONDS" -le 0 ]; then
+  log "ttl-seconds must be greater than zero"
+  exit 1
 fi
 
 require_cmd openssl
@@ -223,8 +224,8 @@ printf '%s' "$PRIVATE_KEY_B64" | openssl base64 -A -d >"$PRIVATE_DER"
 openssl pkcs8 -inform DER -outform PEM -nocrypt -in "$PRIVATE_DER" -out "$PRIVATE_PEM" >/dev/null 2>&1
 
 iat="$(date -u +%s)"
-exp="$((iat + ACCESS_TTL_SECONDS))"
-exp_sql="$(format_utc_sql_time "$exp")"
+exp="$((iat + TTL_SECONDS))"
+exp_sql="$(sqlite3 ':memory:' "SELECT datetime($exp, 'unixepoch');")"
 jti="$(make_uuid)"
 header_json="$(printf '{"alg":"RS256","kid":"%s","typ":"JWT"}' "$(json_escape "$KEY_ID")")"
 payload_json="$(printf '{"iss":"%s","sub":"%s","iat":%s,"exp":%s,"jti":"%s","scope":"app","device_id":"%s"}' \
@@ -245,9 +246,10 @@ token="${signing_input_text}.${signature_b64}"
 
 token_sha256="$(printf '%s' "$token" | openssl dgst -sha256 -hex | awk '{print $NF}')"
 token_id="$(make_uuid)"
-escaped_issuer_username="$(printf "%s" "$USERNAME" | sed "s/'/''/g")"
+escaped_username="$(printf "%s" "$USERNAME" | sed "s/'/''/g")"
 escaped_token="$(printf "%s" "$token" | sed "s/'/''/g")"
 escaped_token_sha256="$(printf "%s" "$token_sha256" | sed "s/'/''/g")"
-sqlite3 "$DB_PATH" "INSERT INTO TOKEN_AUDIT_(TOKEN_ID_, SOURCE_, TOKEN_VALUE_, TOKEN_SHA256_, USERNAME_, DEVICE_ID_, DEVICE_NAME_, CLIENT_ID_, AUTHORIZATION_ID_, ISSUED_AT_, EXPIRES_AT_, REVOKED_AT_, CREATE_AT_, UPDATE_AT_) VALUES('$token_id', 'APP_ACCESS', '$escaped_token', '$escaped_token_sha256', '$escaped_issuer_username', '$DEVICE_ID', '$escaped_device_name', NULL, NULL, '$now_sql', '$exp_sql', NULL, '$now_sql', '$now_sql') ON CONFLICT(TOKEN_SHA256_) DO UPDATE SET SOURCE_ = excluded.SOURCE_, TOKEN_VALUE_ = excluded.TOKEN_VALUE_, USERNAME_ = excluded.USERNAME_, DEVICE_ID_ = excluded.DEVICE_ID_, DEVICE_NAME_ = excluded.DEVICE_NAME_, CLIENT_ID_ = excluded.CLIENT_ID_, AUTHORIZATION_ID_ = excluded.AUTHORIZATION_ID_, ISSUED_AT_ = excluded.ISSUED_AT_, EXPIRES_AT_ = excluded.EXPIRES_AT_, UPDATE_AT_ = excluded.UPDATE_AT_;" >/dev/null
+sqlite3 "$DB_PATH" "INSERT INTO TOKEN_AUDIT_(TOKEN_ID_, SOURCE_, TOKEN_VALUE_, TOKEN_SHA256_, USERNAME_, DEVICE_ID_, DEVICE_NAME_, CLIENT_ID_, AUTHORIZATION_ID_, ISSUED_AT_, EXPIRES_AT_, REVOKED_AT_, CREATE_AT_, UPDATE_AT_) VALUES('$token_id', 'APP_ACCESS', '$escaped_token', '$escaped_token_sha256', '$escaped_username', '$DEVICE_ID', '$escaped_device_name', NULL, NULL, '$now_sql', '$exp_sql', NULL, '$now_sql', '$now_sql') ON CONFLICT(TOKEN_SHA256_) DO UPDATE SET SOURCE_ = excluded.SOURCE_, TOKEN_VALUE_ = excluded.TOKEN_VALUE_, USERNAME_ = excluded.USERNAME_, DEVICE_ID_ = excluded.DEVICE_ID_, DEVICE_NAME_ = excluded.DEVICE_NAME_, CLIENT_ID_ = excluded.CLIENT_ID_, AUTHORIZATION_ID_ = excluded.AUTHORIZATION_ID_, ISSUED_AT_ = excluded.ISSUED_AT_, EXPIRES_AT_ = excluded.EXPIRES_AT_, UPDATE_AT_ = excluded.UPDATE_AT_;" >/dev/null
 
-printf '%s\n' "$token"
+printf 'RUNNER_BEARER_TOKEN=%s\n' "$token"
+printf 'RUNNER_BEARER_EXPIRES_AT=%s\n' "$exp"
