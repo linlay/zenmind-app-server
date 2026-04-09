@@ -113,6 +113,28 @@ func (m *KeyManager) PublicJWKSet() (map[string]any, error) {
 	return map[string]any{"keys": set.Keys}, nil
 }
 
+func (m *KeyManager) ExportKeyPairPEM() (publicPEM, privatePEM string, err error) {
+	key, err := m.LoadOrCreate()
+	if err != nil {
+		return "", "", err
+	}
+	priv, ok := key.Key.(*rsa.PrivateKey)
+	if !ok {
+		return "", "", fmt.Errorf("stored key is not RSA private key")
+	}
+	pubDER, err := x509.MarshalPKIXPublicKey(&priv.PublicKey)
+	if err != nil {
+		return "", "", err
+	}
+	privDER, err := x509.MarshalPKCS8PrivateKey(priv)
+	if err != nil {
+		return "", "", err
+	}
+	pubBlock := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubDER})
+	privBlock := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privDER})
+	return strings.TrimSpace(string(pubBlock)), strings.TrimSpace(string(privBlock)), nil
+}
+
 func (m *KeyManager) PublicKeyPEMFromJWK(e, n string) (string, error) {
 	if strings.TrimSpace(e) == "" || strings.TrimSpace(n) == "" {
 		return "", fmt.Errorf("invalid jwk parameters")

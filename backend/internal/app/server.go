@@ -202,6 +202,7 @@ func (s *Server) routes() http.Handler {
 			pr.Get("/security/jwks", s.handleAdminSecurityJWKS)
 			pr.Post("/security/public-key/generate", s.handleAdminGeneratePublicKey)
 			pr.Post("/security/key-pair/generate", s.handleAdminGenerateKeyPair)
+			pr.Get("/security/key-pair/export", s.handleAdminExportKeyPair)
 			pr.Get("/security/tokens", s.handleAdminListTokenAudits)
 		})
 	})
@@ -968,6 +969,15 @@ func (s *Server) handleAdminGeneratePublicKey(w http.ResponseWriter, r *http.Req
 
 func (s *Server) handleAdminGenerateKeyPair(w http.ResponseWriter, r *http.Request) {
 	pub, priv, err := security.GenerateEphemeralRSAKeyPair()
+	if err != nil {
+		writeInternalError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"publicKey": pub, "privateKey": priv})
+}
+
+func (s *Server) handleAdminExportKeyPair(w http.ResponseWriter, r *http.Request) {
+	pub, priv, err := s.keys.ExportKeyPairPEM()
 	if err != nil {
 		writeInternalError(w, err)
 		return

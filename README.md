@@ -4,7 +4,9 @@
 
 `zenmind-app-server` 是认证与管理服务，提供 OAuth2 / OIDC、管理后台、App 访问令牌和设备管理。
 
-当前部署契约已经收敛为 Docker-first：
+项目支持两种部署模式：Docker 容器编排（默认）和单二进制 Program Mode（用于桌面集成）。
+
+Docker-first 部署契约：
 
 - backend 固定只在容器网络内监听 `8080`
 - frontend 对外暴露 `/admin/`
@@ -74,3 +76,21 @@ make release
 - Vite 开发代理默认回落到 `http://localhost:8080`
 - 如需改代理目标，只使用 `VITE_API_PROXY_TARGET`
 - Docker 部署下仍只通过 frontend 网关访问 backend
+
+## 7. 桌面集成（Program Mode）
+
+```bash
+make release-program
+```
+
+构建产物为单二进制文件，无需 Docker 即可运行，同时提供 API 服务和管理前端静态资源。
+
+关键环境变量：
+
+| 变量 | 说明 |
+|---|---|
+| `SERVER_PORT` | 服务监听端口 |
+| `FRONTEND_DIST_DIR` | 管理前端静态资源目录 |
+| `AUTH_DB_PATH` | 认证数据库文件路径 |
+
+该 bundle 设计用于在 zenmind-desktop 中注册为内置服务（builtin service）。

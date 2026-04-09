@@ -51,9 +51,10 @@ var builtInDefaults = defaults{
 }
 
 type Config struct {
-	ServerPort int
-	DBPath     string
-	Issuer     string
+	ServerPort      int
+	DBPath          string
+	Issuer          string
+	FrontendDistDir string
 
 	EditableFilesBaseDir  string
 	ExternalEditableFiles []EditableFile
@@ -107,6 +108,7 @@ func Load() (*Config, error) {
 		ServerPort:            port,
 		DBPath:                env("AUTH_DB_PATH", builtInDefaults.DBPath),
 		Issuer:                env("AUTH_ISSUER", builtInDefaults.Issuer),
+		FrontendDistDir:       env("FRONTEND_DIST_DIR", ""),
 		EditableFilesBaseDir:  baseDir,
 		ExternalEditableFiles: editableFiles,
 		AdminUsername:         env("AUTH_ADMIN_USERNAME", builtInDefaults.AdminUsername),
@@ -144,6 +146,15 @@ func Load() (*Config, error) {
 	if err := validate(cfg); err != nil {
 		return nil, err
 	}
+
+	if strings.TrimSpace(cfg.FrontendDistDir) != "" {
+		abs, err := filepath.Abs(cfg.FrontendDistDir)
+		if err != nil {
+			return nil, fmt.Errorf("resolve FRONTEND_DIST_DIR: %w", err)
+		}
+		cfg.FrontendDistDir = abs
+	}
+
 	return cfg, nil
 }
 
