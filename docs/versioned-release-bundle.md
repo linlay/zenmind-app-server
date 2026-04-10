@@ -86,8 +86,6 @@ zenmind-app-server/
   frontend/
     frontend-gateway | frontend-gateway.exe
     dist/
-  config/
-    config-files.runtime.yml
   data/
   run/
   start.sh | start.cmd
@@ -103,7 +101,6 @@ zenmind-app-server/
 - backend 默认读取 `./data/auth.db` 与 `./backend/schema.sql`
 - frontend-gateway 默认代理到 `http://127.0.0.1:8080`
 - frontend 静态资源目录固定为 `./frontend/dist`
-- `config/` 目录默认只包含空的 runtime registry 占位文件
 - Windows bundle 使用 `start.cmd` / `stop.cmd`
 - Linux 专属 `systemd` 文件只在显式打 Linux program bundle 时附带
 - Windows bundle 的辅助脚本当前仍为 shell 版本，建议在 Git Bash 或 WSL 中执行
@@ -146,8 +143,6 @@ zenmind-app-server/
   setup-public-key.sh
   issue-bridge-access-token.sh
   issue-bridge-runner-token.sh
-  config/
-    config-files.runtime.yml
   data/
   images/
     zenmind-app-server-image-vX.Y.Z-linux-<arch>.tar.gz
@@ -198,6 +193,5 @@ RELEASE_DRY_RUN=1 make release-image
 
 - Program Bundle 与 Image Bundle 共用根目录 `VERSION` 作为正式版本源
 - `make release` 保留兼容入口，不再直接构建 image bundle
-- 当前仓库仍兼容旧代码里的可编辑配置文件能力，但 release bundle 默认只包含最小 `config/` 占位目录
 - 辅助脚本默认依赖 `openssl` 和 `sqlite3`
 - Program Bundle 构建需要 Go 与 npm；Image Bundle 额外需要 Docker / buildx

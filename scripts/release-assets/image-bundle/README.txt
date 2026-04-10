@@ -22,7 +22,6 @@ setup-public-key.sh           — 导出 JWK 公私钥与 publicKey.pem
 issue-bridge-access-token.sh  — 生成供 bridge 调用的 app access token
 issue-bridge-runner-token.sh  — 生成供内部 bridge 调 runner 使用的带 exp app access token
 README.txt                    — 本文件
-config/config-files.runtime.yml — 运行时配置目录占位文件
 data/                         — 运行时数据目录
 images/                       — Docker 镜像压缩包
 
@@ -32,5 +31,4 @@ images/                       — Docker 镜像压缩包
 - 需要 Docker Engine 20+ 和 docker compose v2。
 - image bundle 默认只打包 Linux 当前架构镜像。
 - .env 中的 APP_SERVER_VERSION 必须与镜像标签一致；打包产物中的 .env.example 已默认写入当前版本。
-- `config/` 目录默认只包含一个空的 runtime registry，占位供后续扩展。
 - `setup-public-key.sh`、`issue-bridge-access-token.sh`、`issue-bridge-runner-token.sh` 依赖 `openssl` 和 `sqlite3`。

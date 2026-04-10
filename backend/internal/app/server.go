@@ -28,7 +28,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"zenmind-app-server/backend/internal/config"
-	"zenmind-app-server/backend/internal/managedconfig"
 	"zenmind-app-server/backend/internal/model"
 	"zenmind-app-server/backend/internal/security"
 	"zenmind-app-server/backend/internal/store"
@@ -43,13 +42,12 @@ const (
 var templatesFS embed.FS
 
 type Server struct {
-	cfg         *config.Config
-	store       *store.Store
-	configFiles *managedconfig.Service
-	keys        *security.KeyManager
-	router      http.Handler
-	templates   *template.Template
-	logger      *log.Logger
+	cfg       *config.Config
+	store     *store.Store
+	keys      *security.KeyManager
+	router    http.Handler
+	templates *template.Template
+	logger    *log.Logger
 
 	adminSessionsMu sync.RWMutex
 	adminSessions   map[string]model.AdminSession
@@ -78,26 +76,9 @@ func New(cfg *config.Config, st *store.Store, keys *security.KeyManager, logger 
 	if err != nil {
 		return nil, err
 	}
-	editableFiles := make([]managedconfig.AllowedFile, 0, len(cfg.ExternalEditableFiles))
-	for _, file := range cfg.ExternalEditableFiles {
-		editableFiles = append(editableFiles, managedconfig.AllowedFile{
-			ID:            file.ID,
-			Name:          file.Name,
-			Type:          file.Type,
-			HostPath:      file.HostPath,
-			ContainerPath: file.ContainerPath,
-			Path:          file.Path,
-			ResolvedPath:  file.ResolvedPath,
-		})
-	}
-	configFileService, err := managedconfig.New(editableFiles, cfg.EditableFilesBaseDir, managedconfig.DefaultMaxBytes)
-	if err != nil {
-		return nil, err
-	}
 	s := &Server{
 		cfg:           cfg,
 		store:         st,
-		configFiles:   configFileService,
 		keys:          keys,
 		templates:     tmpl,
 		logger:        logger,
@@ -188,11 +169,6 @@ func (s *Server) routes() http.Handler {
 			pr.Put("/clients/{clientId}", s.handleUpdateClient)
 			pr.Patch("/clients/{clientId}/status", s.handlePatchClientStatus)
 			pr.Post("/clients/{clientId}/secret/rotate", s.handleRotateClientSecret)
-
-			pr.Get("/config-files", s.handleAdminListConfigFiles)
-			pr.Get("/config-files/content", s.handleAdminGetConfigFileContent)
-			pr.Put("/config-files/content", s.handleAdminSaveConfigFileContent)
-
 			pr.Post("/security/app-tokens/issue", s.handleAdminIssueAppToken)
 			pr.Post("/security/app-tokens/refresh", s.handleAdminRefreshAppToken)
 			pr.Get("/security/app-devices", s.handleAdminListAppDevices)
@@ -642,56 +618,6 @@ func (s *Server) handleRotateClientSecret(w http.ResponseWriter, r *http.Request
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"clientId": clientID, "newClientSecret": secret})
-}
-
-func (s *Server) handleAdminListConfigFiles(w http.ResponseWriter, r *http.Request) {
-	files, err := s.configFiles.List()
-	if err != nil {
-		writeInternalError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, files)
-}
-
-func (s *Server) handleAdminGetConfigFileContent(w http.ResponseWriter, r *http.Request) {
-	selector := strings.TrimSpace(r.URL.Query().Get("id"))
-	if selector == "" {
-		selector = strings.TrimSpace(r.URL.Query().Get("path"))
-	}
-	if selector == "" {
-		writeAPIError(w, http.StatusBadRequest, "id or path is required")
-		return
-	}
-	result, err := s.configFiles.Read(selector)
-	if err != nil {
-		writeConfigFileError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, result)
-}
-
-func (s *Server) handleAdminSaveConfigFileContent(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		ID      string `json:"id"`
-		Path    string `json:"path"`
-		Content string `json:"content"`
-	}
-	if !decodeJSON(w, r, &req) {
-		return
-	}
-	selector := strings.TrimSpace(req.ID)
-	if selector == "" {
-		selector = strings.TrimSpace(req.Path)
-	}
-	if selector == "" {
-		writeAPIError(w, http.StatusBadRequest, "id or path is required")
-		return
-	}
-	if err := s.configFiles.Save(selector, req.Content); err != nil {
-		writeConfigFileError(w, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) handleAppLogin(w http.ResponseWriter, r *http.Request) {
@@ -1818,23 +1744,6 @@ func writeSQLError(w http.ResponseWriter, err error) {
 		return
 	}
 	writeInternalError(w, err)
-}
-
-func writeConfigFileError(w http.ResponseWriter, err error) {
-	switch {
-	case managedconfig.IsCode(err, managedconfig.CodeInvalidPath):
-		writeAPIError(w, http.StatusBadRequest, err.Error())
-	case managedconfig.IsCode(err, managedconfig.CodeNotAllowed):
-		writeAPIError(w, http.StatusForbidden, err.Error())
-	case managedconfig.IsCode(err, managedconfig.CodeNotFound):
-		writeAPIError(w, http.StatusBadRequest, err.Error())
-	case managedconfig.IsCode(err, managedconfig.CodeNotFile):
-		writeAPIError(w, http.StatusBadRequest, err.Error())
-	case managedconfig.IsCode(err, managedconfig.CodeTooLarge):
-		writeAPIError(w, http.StatusRequestEntityTooLarge, err.Error())
-	default:
-		writeInternalError(w, err)
-	}
 }
 
 func normalizeStatus(status string) string {

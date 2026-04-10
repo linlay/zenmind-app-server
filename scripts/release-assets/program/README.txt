@@ -17,7 +17,6 @@ zenmind-app-server — Program Bundle
 README.txt                    — 本文件
 backend/                      — backend 程序与 schema.sql
 frontend/                     — frontend-gateway 与静态资源
-config/config-files.runtime.yml — 运行时配置目录占位文件
 data/                         — SQLite 与运行时数据目录
 run/                          — 进程 pid 与日志目录
 
@@ -33,7 +32,6 @@ issue-bridge-runner-token.sh  — 生成供内部 bridge 调 runner 使用的带
 
 - backend 默认读取 ./data/auth.db 与 ./backend/schema.sql。
 - frontend-gateway 默认代理到 http://127.0.0.1:8080，并从 ./frontend/dist 提供 /admin/ 静态资源。
-- `config/` 目录默认只包含一个空的 runtime registry，占位供后续扩展。
 - Windows bundle 提供原生 `start.cmd` / `stop.cmd`。
 - 辅助脚本当前为 shell 版本；Windows 上请在 Git Bash 或 WSL 中执行。
 - 显式生成 Linux program bundle 时，会额外附带 `zenmind-app-server.service` 示例文件。

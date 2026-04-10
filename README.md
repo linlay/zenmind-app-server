@@ -12,7 +12,7 @@ Docker-first 部署契约：
 - frontend 对外暴露 `/admin/`
 - release bundle 支持按版本离线部署
 - 根目录 `.env.example` 只保留部署必要项
-- 外部“受管配置文件”不再作为默认部署契约
+- 部署配置只保留当前服务自身的 `.env` 契约
 
 ## 2. 快速开始
 
@@ -96,8 +96,8 @@ dist/release/zenmind-app-server-image-bundle-v1.0.0-linux-arm64.tar.gz
 
 Bundle 解压后的最小内容：
 
-- Program Bundle：程序二进制、frontend 静态资源、`.env.example`、`README.txt`、`config/`、`data/`、平台对应启停脚本
-- Image Bundle：`.env.example`、`README.txt`、`load-image.sh`、`start.sh`、`stop.sh`、`compose.release.yml`、`images/`、`config/`、`data/`
+- Program Bundle：程序二进制、frontend 静态资源、`.env.example`、`README.txt`、`data/`、平台对应启停脚本
+- Image Bundle：`.env.example`、`README.txt`、`load-image.sh`、`start.sh`、`stop.sh`、`compose.release.yml`、`images/`、`data/`
 
 Windows 专用 program 启停入口位于 bundle 根目录的 `start.cmd` / `stop.cmd`。
 

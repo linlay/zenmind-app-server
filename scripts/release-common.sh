@@ -117,13 +117,6 @@ copy_env_example_with_version() {
   grep -q "^APP_SERVER_VERSION=$VERSION$" "$dest" || die "failed to set APP_SERVER_VERSION in $dest"
 }
 
-write_runtime_registry() {
-  local dest="$1"
-  cat > "$dest" <<'EOF'
-files: []
-EOF
-}
-
 build_frontend_dist() {
   local output_dir="$1"
   mkdir -p "$output_dir"
