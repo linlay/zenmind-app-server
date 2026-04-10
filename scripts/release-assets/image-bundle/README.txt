@@ -30,5 +30,6 @@ images/                       — Docker 镜像压缩包
 
 - 需要 Docker Engine 20+ 和 docker compose v2。
 - image bundle 默认只打包 Linux 当前架构镜像。
+- frontend 容器为 nginx，负责 `/admin/` 静态资源与 `/admin/api`、`/oauth2`、`/openid` 反向代理。
 - .env 中的 APP_SERVER_VERSION 必须与镜像标签一致；打包产物中的 .env.example 已默认写入当前版本。
 - `setup-public-key.sh`、`issue-bridge-access-token.sh`、`issue-bridge-runner-token.sh` 依赖 `openssl` 和 `sqlite3`。

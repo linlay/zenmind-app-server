@@ -23,7 +23,7 @@ PLATFORM="linux/$ARCH"
 BACKEND_IMAGE="app-server-backend:$VERSION"
 FRONTEND_IMAGE="app-server-frontend:$VERSION"
 IMAGE_ARCHIVE_NAME="${APP_NAME}-image-${VERSION}-linux-${ARCH}.tar.gz"
-IMAGE_BUNDLE_NAME="$(bundle_filename "image-bundle" "$VERSION" "linux" "$ARCH")"
+IMAGE_BUNDLE_NAME="$(image_bundle_filename "$VERSION" "linux" "$ARCH")"
 
 log "VERSION=$VERSION"
 log "ARCH=$ARCH PLATFORM=$PLATFORM"
@@ -51,7 +51,7 @@ build_backend_binary "$PLATFORM_OS" "$ARCH" "$BACKEND_BUILD_DIR/app"
 cp "$REPO_ROOT/backend/schema.sql" "$BACKEND_BUILD_DIR/schema.sql"
 
 build_frontend_dist "$FRONTEND_BUILD_DIR/dist"
-build_frontend_gateway_binary "$PLATFORM_OS" "$ARCH" "$FRONTEND_BUILD_DIR/frontend-gateway"
+cp "$REPO_ROOT/frontend/nginx.conf" "$FRONTEND_BUILD_DIR/nginx.conf"
 
 log "building backend image..."
 docker buildx build \

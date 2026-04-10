@@ -102,13 +102,20 @@ ensure_release_dist() {
   mkdir -p "$RELEASE_DIST_DIR"
 }
 
-bundle_filename() {
-  local bundle_type="$1"
-  local version="$2"
-  local os="$3"
-  local arch="$4"
-  local ext="${5:-tar.gz}"
-  printf '%s-%s-%s-%s-%s.%s\n' "$APP_NAME" "$bundle_type" "$version" "$os" "$arch" "$ext"
+program_bundle_filename() {
+  local version="$1"
+  local os="$2"
+  local arch="$3"
+  local ext="${4:-tar.gz}"
+  printf '%s-%s-%s-%s.%s\n' "$APP_NAME" "$version" "$os" "$arch" "$ext"
+}
+
+image_bundle_filename() {
+  local version="$1"
+  local os="$2"
+  local arch="$3"
+  local ext="${4:-tar.gz}"
+  printf '%s-image-%s-%s-%s.%s\n' "$APP_NAME" "$version" "$os" "$arch" "$ext"
 }
 
 archive_format_for_os() {
@@ -131,6 +138,8 @@ archive_bundle_dir() {
   local bundle_dir_name="$2"
   local output_path="$3"
   local format="$4"
+
+  rm -f "$output_path"
 
   case "$format" in
     tar.gz)
@@ -184,27 +193,20 @@ build_backend_binary() {
   )
 }
 
-build_frontend_gateway_binary() {
-  local target_os="$1"
-  local target_arch="$2"
-  local output_path="$3"
-  mkdir -p "$(dirname "$output_path")"
-  log "building frontend gateway for $target_os/$target_arch..."
-  (
-    cd "$REPO_ROOT/frontend"
-    GOPROXY="$GOPROXY" \
-    GOOS="$target_os" \
-    GOARCH="$target_arch" \
-    CGO_ENABLED=0 \
-    go build -trimpath -ldflags='-s -w -buildid=' -o "$output_path" ./proxy/main.go
-  )
-}
-
 write_program_manifest() {
   local dest="$1"
   local target_os="$2"
   local target_arch="$3"
   local backend_entry="$4"
+  local start_script="start.sh"
+  local stop_script="stop.sh"
+  local deploy_script="deploy.sh"
+
+  if [[ "$target_os" == "windows" ]]; then
+    start_script="start.ps1"
+    stop_script="stop.ps1"
+    deploy_script="deploy.ps1"
+  fi
 
   cat > "$dest" <<EOF
 {
@@ -217,7 +219,6 @@ write_program_manifest() {
   },
   "frontend": {
     "dist": "frontend/dist",
-    "nginxConfig": "frontend/nginx.conf",
     "index": "index.html",
     "spa": true
   },
@@ -228,9 +229,9 @@ write_program_manifest() {
     "entry": "$backend_entry"
   },
   "scripts": {
-    "start": "start.sh",
-    "stop": "stop.sh",
-    "deploy": "deploy.sh"
+    "start": "$start_script",
+    "stop": "$stop_script",
+    "deploy": "$deploy_script"
   }
 }
 EOF

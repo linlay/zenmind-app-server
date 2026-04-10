@@ -6,6 +6,5 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $ScriptDir
 Import-ProgramEnv -Optional
 Initialize-ProgramRuntime
-Stop-NginxProcess
 Stop-ProgramBackend
 Write-Host "[program-stop] stopped zenmind-app-server"

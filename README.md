@@ -36,7 +36,7 @@ make release-image
   - `darwin/arm64`
   - `windows/amd64`
 - `make release-image` 默认产出当前宿主机架构对应的 Linux Image Bundle。
-- Program Bundle 是宿主机程序部署包，包含 `backend/app`、`frontend/dist` 与 `frontend/nginx.conf`。
+- Program Bundle 是宿主机程序部署包，包含后端二进制和 `frontend/dist`。
 - Image Bundle 是容器镜像离线部署包，解压后导入镜像并通过 compose 启动。
 - 所有 release 产物统一输出到 `dist/release/`。
 - 正式版本默认读取根目录 `VERSION`，格式固定为 `vX.Y.Z`。
@@ -54,6 +54,11 @@ make release-image
 - 管理台前缀：`/admin/`
 - API 前缀：`/admin/api`
 - OAuth2 / OIDC：`/oauth2`、`/openid`
+
+宿主机集成场景下，Node HTTP server 通过 `manifest.json` 注册路由时，约定：
+
+- `baseUrl` 使用 `/<appId>/`
+- API 使用 `/<appId>/api/`
 
 ## 3. 配置说明
 
@@ -89,17 +94,17 @@ make release-image VERSION=v1.0.0
 产物命名示例：
 
 ```text
-dist/release/zenmind-app-server-program-v1.0.0-darwin-arm64.tar.gz
-dist/release/zenmind-app-server-program-v1.0.0-windows-amd64.zip
-dist/release/zenmind-app-server-image-bundle-v1.0.0-linux-arm64.tar.gz
+dist/release/zenmind-app-server-v1.0.0-darwin-arm64.tar.gz
+dist/release/zenmind-app-server-v1.0.0-windows-amd64.zip
+dist/release/zenmind-app-server-image-v1.0.0-linux-arm64.tar.gz
 ```
 
 Bundle 解压后的最小内容：
 
-- Program Bundle：`manifest.json`、`backend/app(.exe)`、`frontend/dist`、`frontend/nginx.conf`、根目录 `start/stop/deploy`、`scripts/`、`.env.example`
+- Program Bundle：`manifest.json`、`backend/zenmind-app-server(.exe)`、`frontend/dist`、当前平台根目录 `start/stop/deploy`、当前平台 `scripts/`、`.env.example`
 - Image Bundle：`.env.example`、`README.txt`、`load-image.sh`、`start.sh`、`stop.sh`、`compose.release.yml`、`images/`、`data/`
 
-Program Bundle 不内置 nginx，宿主机器需要预装 nginx；Windows 专用入口位于 bundle 根目录的 `start.ps1` / `stop.ps1` / `deploy.ps1`。
+Program Bundle 不再包含 frontend 进程；`frontend/dist` 由宿主 nginx 或等价前端网关托管，bundle 自身只负责 backend。`manifest.json` 中的 `frontend` / `api` 字段用于宿主 Node HTTP server 注册前端静态路由和 API 路由。Windows bundle 只包含 `.ps1` 入口，Darwin bundle 只包含 `.sh` 入口。
 
 ## 6. 运维
 
@@ -119,13 +124,11 @@ Program Bundle 不内置 nginx，宿主机器需要预装 nginx；Windows 专用
 make release-program
 ```
 
-构建产物为 Program Bundle，无需 Docker 即可运行；bundle 内包含后端可执行文件、前端静态资源和 nginx 配置模板。
+构建产物为 Program Bundle，无需 Docker 即可运行；bundle 内包含后端可执行文件和前端静态资源，frontend 路由由宿主系统处理。
 
 关键环境变量：
 
 | 变量 | 说明 |
 |---|---|
 | `SERVER_PORT` | backend 监听端口 |
-| `FRONTEND_PORT` | nginx 对外监听端口 |
-| `NGINX_BIN` | nginx 可执行文件路径或命令名 |
 | `AUTH_DB_PATH` | 认证数据库文件路径 |

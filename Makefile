@@ -36,4 +36,3 @@ release-image:
 
 clean:
 	rm -f backend/app
-	rm -f frontend/frontend-gateway

@@ -1,5 +1,5 @@
 ARG NODE_BUILD_IMAGE=node:20-alpine
-ARG GO_BUILD_IMAGE=golang:1.23-alpine
+ARG NGINX_IMAGE=nginx:1.27-alpine
 
 FROM ${NODE_BUILD_IMAGE} AS ui-build
 WORKDIR /app
@@ -19,20 +19,7 @@ RUN npm config set registry "$NPM_REGISTRY" && npm ci
 COPY . .
 RUN npm run build
 
-FROM ${GO_BUILD_IMAGE} AS proxy-build
-ARG TARGETOS=linux
-ARG TARGETARCH=amd64
-ARG GOPROXY=https://proxy.golang.org,direct
-ENV GOPROXY=$GOPROXY
-WORKDIR /src
-COPY proxy ./proxy
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags='-s -w -buildid=' -o /out/frontend-gateway ./proxy/main.go
-
-FROM scratch
-WORKDIR /app
-COPY --from=proxy-build /out/frontend-gateway /app/frontend-gateway
-COPY --from=ui-build /app/dist /app/dist
+FROM ${NGINX_IMAGE}
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=ui-build /app/dist /usr/share/nginx/html
 EXPOSE 80
-ENV BACKEND_TARGET=http://app-server-backend:8080
-ENV STATIC_DIR=/app/dist
-ENTRYPOINT ["/app/frontend-gateway"]

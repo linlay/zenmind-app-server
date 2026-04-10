@@ -1,8 +1,4 @@
-FROM scratch
-WORKDIR /app
-COPY frontend-gateway /app/frontend-gateway
-COPY dist /app/dist
+FROM nginx:1.27-alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY dist /usr/share/nginx/html
 EXPOSE 80
-ENV BACKEND_TARGET=http://app-server-backend:8080
-ENV STATIC_DIR=/app/dist
-ENTRYPOINT ["/app/frontend-gateway"]

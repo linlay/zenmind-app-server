@@ -26,9 +26,6 @@ services:
     container_name: app-server-frontend
     depends_on:
       - app-server-backend
-    environment:
-      BACKEND_TARGET: http://app-server-backend:8080
-      STATIC_DIR: /app/dist
     ports:
       - "${FRONTEND_PORT}:80"
     networks:
