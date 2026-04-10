@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -29,12 +29,13 @@ func main() {
 	}
 	defer conn.Close()
 
-	schemaPath := os.Getenv("AUTH_SCHEMA_PATH")
-	if schemaPath == "" {
-		schemaPath = filepath.Join(".", "schema.sql")
-	}
-	if err := db.InitSchema(conn, schemaPath); err != nil {
-		logger.Fatalf("init schema failed: %v", err)
+	schemaPath := strings.TrimSpace(os.Getenv("AUTH_SCHEMA_PATH"))
+	if schemaPath != "" {
+		if err := db.InitSchema(conn, schemaPath); err != nil {
+			logger.Fatalf("init schema failed: %v", err)
+		}
+	} else if err := db.InitEmbeddedSchema(conn); err != nil {
+		logger.Fatalf("init embedded schema failed: %v", err)
 	}
 
 	st := store.New(conn)

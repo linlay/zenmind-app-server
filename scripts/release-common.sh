@@ -107,7 +107,45 @@ bundle_filename() {
   local version="$2"
   local os="$3"
   local arch="$4"
-  printf '%s-%s-%s-%s-%s.tar.gz\n' "$APP_NAME" "$bundle_type" "$version" "$os" "$arch"
+  local ext="${5:-tar.gz}"
+  printf '%s-%s-%s-%s-%s.%s\n' "$APP_NAME" "$bundle_type" "$version" "$os" "$arch" "$ext"
+}
+
+archive_format_for_os() {
+  case "$1" in
+    windows) printf 'zip\n' ;;
+    *) printf 'tar.gz\n' ;;
+  esac
+}
+
+require_archive_tool_for_os() {
+  case "$(archive_format_for_os "$1")" in
+    zip) require_cmd zip ;;
+    tar.gz) require_cmd tar ;;
+    *) die "unsupported archive format for OS: $1" ;;
+  esac
+}
+
+archive_bundle_dir() {
+  local stage_root="$1"
+  local bundle_dir_name="$2"
+  local output_path="$3"
+  local format="$4"
+
+  case "$format" in
+    tar.gz)
+      tar -czf "$output_path" -C "$stage_root" "$bundle_dir_name"
+      ;;
+    zip)
+      (
+        cd "$stage_root"
+        zip -qr "$output_path" "$bundle_dir_name"
+      )
+      ;;
+    *)
+      die "unsupported archive format: $format"
+      ;;
+  esac
 }
 
 copy_env_example_with_version() {
@@ -160,6 +198,42 @@ build_frontend_gateway_binary() {
     CGO_ENABLED=0 \
     go build -trimpath -ldflags='-s -w -buildid=' -o "$output_path" ./proxy/main.go
   )
+}
+
+write_program_manifest() {
+  local dest="$1"
+  local target_os="$2"
+  local target_arch="$3"
+  local backend_entry="$4"
+
+  cat > "$dest" <<EOF
+{
+  "id": "$APP_NAME",
+  "name": "$APP_NAME",
+  "version": "$VERSION",
+  "platform": {
+    "os": "$target_os",
+    "arch": "$target_arch"
+  },
+  "frontend": {
+    "dist": "frontend/dist",
+    "nginxConfig": "frontend/nginx.conf",
+    "index": "index.html",
+    "spa": true
+  },
+  "api": {
+    "enabled": true
+  },
+  "backend": {
+    "entry": "$backend_entry"
+  },
+  "scripts": {
+    "start": "start.sh",
+    "stop": "stop.sh",
+    "deploy": "deploy.sh"
+  }
+}
+EOF
 }
 
 program_target_matrix_lines() {

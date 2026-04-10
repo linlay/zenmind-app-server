@@ -36,7 +36,7 @@ make release-image
   - `darwin/arm64`
   - `windows/amd64`
 - `make release-image` 默认产出当前宿主机架构对应的 Linux Image Bundle。
-- Program Bundle 是宿主机程序部署包，直接运行 backend 与 frontend-gateway。
+- Program Bundle 是宿主机程序部署包，包含 `backend/app`、`frontend/dist` 与 `frontend/nginx.conf`。
 - Image Bundle 是容器镜像离线部署包，解压后导入镜像并通过 compose 启动。
 - 所有 release 产物统一输出到 `dist/release/`。
 - 正式版本默认读取根目录 `VERSION`，格式固定为 `vX.Y.Z`。
@@ -90,16 +90,16 @@ make release-image VERSION=v1.0.0
 
 ```text
 dist/release/zenmind-app-server-program-v1.0.0-darwin-arm64.tar.gz
-dist/release/zenmind-app-server-program-v1.0.0-windows-amd64.tar.gz
+dist/release/zenmind-app-server-program-v1.0.0-windows-amd64.zip
 dist/release/zenmind-app-server-image-bundle-v1.0.0-linux-arm64.tar.gz
 ```
 
 Bundle 解压后的最小内容：
 
-- Program Bundle：程序二进制、frontend 静态资源、`.env.example`、`README.txt`、`data/`、平台对应启停脚本
+- Program Bundle：`manifest.json`、`backend/app(.exe)`、`frontend/dist`、`frontend/nginx.conf`、根目录 `start/stop/deploy`、`scripts/`、`.env.example`
 - Image Bundle：`.env.example`、`README.txt`、`load-image.sh`、`start.sh`、`stop.sh`、`compose.release.yml`、`images/`、`data/`
 
-Windows 专用 program 启停入口位于 bundle 根目录的 `start.cmd` / `stop.cmd`。
+Program Bundle 不内置 nginx，宿主机器需要预装 nginx；Windows 专用入口位于 bundle 根目录的 `start.ps1` / `stop.ps1` / `deploy.ps1`。
 
 ## 6. 运维
 
@@ -119,14 +119,13 @@ Windows 专用 program 启停入口位于 bundle 根目录的 `start.cmd` / `sto
 make release-program
 ```
 
-构建产物为单二进制文件，无需 Docker 即可运行，同时提供 API 服务和管理前端静态资源。
+构建产物为 Program Bundle，无需 Docker 即可运行；bundle 内包含后端可执行文件、前端静态资源和 nginx 配置模板。
 
 关键环境变量：
 
 | 变量 | 说明 |
 |---|---|
-| `SERVER_PORT` | 服务监听端口 |
-| `FRONTEND_DIST_DIR` | 管理前端静态资源目录 |
+| `SERVER_PORT` | backend 监听端口 |
+| `FRONTEND_PORT` | nginx 对外监听端口 |
+| `NGINX_BIN` | nginx 可执行文件路径或命令名 |
 | `AUTH_DB_PATH` | 认证数据库文件路径 |
-
-该 bundle 设计用于在 zenmind-desktop 中注册为内置服务（builtin service）。

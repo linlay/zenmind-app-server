@@ -2,12 +2,16 @@ package db
 
 import (
 	"database/sql"
+	"embed"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	_ "modernc.org/sqlite"
 )
+
+//go:embed schema.sql
+var embeddedSchemaFS embed.FS
 
 func Open(dbPath string) (*sql.DB, error) {
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0o755); err != nil {
@@ -32,6 +36,18 @@ func InitSchema(db *sql.DB, schemaPath string) error {
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(string(raw))
+	return initSchemaSQL(db, raw)
+}
+
+func InitEmbeddedSchema(db *sql.DB) error {
+	raw, err := embeddedSchemaFS.ReadFile("schema.sql")
+	if err != nil {
+		return err
+	}
+	return initSchemaSQL(db, raw)
+}
+
+func initSchemaSQL(db *sql.DB, raw []byte) error {
+	_, err := db.Exec(string(raw))
 	return err
 }
