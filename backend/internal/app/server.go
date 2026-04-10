@@ -23,7 +23,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 	"github.com/robfig/cron/v3"
 	"golang.org/x/crypto/bcrypt"
 
@@ -36,6 +35,11 @@ import (
 const (
 	adminSessionCookieName     = "ADMIN_SESSION"
 	oauthUserSessionCookieName = "OAUTH_USER_SESSION"
+	adminAPIBasePath           = "/admin/api"
+	canonicalOpenIDBasePath    = "/api/openid"
+	canonicalOAuth2BasePath    = "/api/oauth2"
+	legacyOpenIDBasePath       = "/openid"
+	legacyOAuth2BasePath       = "/oauth2"
 )
 
 //go:embed templates/*.html
@@ -56,10 +60,6 @@ type Server struct {
 	oauthSessions   map[string]model.OAuthUserSession
 
 	allowNewDeviceLogin atomic.Bool
-
-	wsMu      sync.RWMutex
-	wsClients map[*websocket.Conn]model.AppPrincipal
-	upgrader  websocket.Upgrader
 
 	cron *cron.Cron
 }
@@ -84,12 +84,6 @@ func New(cfg *config.Config, st *store.Store, keys *security.KeyManager, logger 
 		logger:        logger,
 		adminSessions: map[string]model.AdminSession{},
 		oauthSessions: map[string]model.OAuthUserSession{},
-		wsClients:     map[*websocket.Conn]model.AppPrincipal{},
-		upgrader: websocket.Upgrader{
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
-			CheckOrigin:     func(r *http.Request) bool { return true },
-		},
 	}
 	s.allowNewDeviceLogin.Store(false)
 	s.router = s.routes()
@@ -131,23 +125,12 @@ func (s *Server) routes() http.Handler {
 	r.Use(middleware.NoCache)
 	r.Use(s.cors)
 
-	r.Get("/openid/login", s.handleOpenIDLoginPage)
-	r.Post("/openid/login", s.handleOpenIDLoginSubmit)
-	r.Get("/openid/consent", s.handleOpenIDConsentPage)
-	r.Post("/openid/consent", s.handleOpenIDConsentSubmit)
+	s.mountOpenIDRoutes(r, canonicalOpenIDBasePath)
+	s.mountOpenIDRoutes(r, legacyOpenIDBasePath)
+	s.mountOAuth2Routes(r, canonicalOAuth2BasePath)
+	s.mountOAuth2Routes(r, legacyOAuth2BasePath)
 
-	r.Get("/openid/.well-known/openid-configuration", s.handleOpenIDConfiguration)
-	r.Get("/openid/.well-known/oauth-authorization-server", s.handleOAuthMetadata)
-	r.Get("/openid/jwks", s.handleOpenIDJWKS)
-	r.Get("/openid/userinfo", s.handleOpenIDUserInfo)
-	r.Post("/openid/userinfo", s.handleOpenIDUserInfo)
-
-	r.Get("/oauth2/authorize", s.handleOAuthAuthorize)
-	r.Post("/oauth2/token", s.handleOAuthToken)
-	r.Post("/oauth2/revoke", s.handleOAuthRevoke)
-	r.Post("/oauth2/introspect", s.handleOAuthIntrospect)
-
-	r.Route("/admin/api", func(ar chi.Router) {
+	r.Route(adminAPIBasePath, func(ar chi.Router) {
 		ar.Post("/session/login", s.handleAdminLogin)
 		ar.Post("/bcrypt/generate", s.handleBcryptGenerate)
 
@@ -199,13 +182,32 @@ func (s *Server) routes() http.Handler {
 				g.Delete("/devices/{deviceId}", s.handleAppDeleteDevice)
 			})
 		})
-
-		api.Route("/app", func(ap chi.Router) {
-			ap.Get("/ws", s.handleAppWS)
-		})
 	})
 
 	return r
+}
+
+func (s *Server) mountOpenIDRoutes(r chi.Router, prefix string) {
+	r.Route(prefix, func(or chi.Router) {
+		or.Get("/login", s.handleOpenIDLoginPage)
+		or.Post("/login", s.handleOpenIDLoginSubmit)
+		or.Get("/consent", s.handleOpenIDConsentPage)
+		or.Post("/consent", s.handleOpenIDConsentSubmit)
+		or.Get("/.well-known/openid-configuration", s.handleOpenIDConfiguration)
+		or.Get("/.well-known/oauth-authorization-server", s.handleOAuthMetadata)
+		or.Get("/jwks", s.handleOpenIDJWKS)
+		or.Get("/userinfo", s.handleOpenIDUserInfo)
+		or.Post("/userinfo", s.handleOpenIDUserInfo)
+	})
+}
+
+func (s *Server) mountOAuth2Routes(r chi.Router, prefix string) {
+	r.Route(prefix, func(or chi.Router) {
+		or.Get("/authorize", s.handleOAuthAuthorize)
+		or.Post("/token", s.handleOAuthToken)
+		or.Post("/revoke", s.handleOAuthRevoke)
+		or.Post("/introspect", s.handleOAuthIntrospect)
+	})
 }
 
 func (s *Server) cors(next http.Handler) http.Handler {
@@ -953,73 +955,17 @@ func (s *Server) handleAdminListTokenAudits(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, payload)
 }
 
-func (s *Server) handleAppWS(w http.ResponseWriter, r *http.Request) {
-	token := bearerToken(r)
-	if strings.TrimSpace(token) == "" {
-		token = strings.TrimSpace(r.URL.Query().Get("access_token"))
-	}
-	principal, err := s.authenticateAppAccessToken(token)
-	if err != nil {
-		writeAPIError(w, http.StatusUnauthorized, "unauthorized")
-		return
-	}
-	conn, err := s.upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		return
-	}
-	s.wsMu.Lock()
-	s.wsClients[conn] = *principal
-	s.wsMu.Unlock()
-	s.broadcastWS("system.ping", map[string]any{"ts": time.Now().UnixMilli()})
-
-	for {
-		_, message, err := conn.ReadMessage()
-		if err != nil {
-			break
-		}
-		if strings.EqualFold(strings.TrimSpace(string(message)), "ping") {
-			_ = conn.WriteJSON(map[string]any{"type": "system.ping", "payload": map[string]any{"ts": time.Now().UnixMilli()}})
-		}
-	}
-	s.wsMu.Lock()
-	delete(s.wsClients, conn)
-	s.wsMu.Unlock()
-	_ = conn.Close()
-}
-
-func (s *Server) broadcastWS(eventType string, payload map[string]any) {
-	envelope := map[string]any{
-		"type":      eventType,
-		"timestamp": time.Now().UnixMilli(),
-		"payload":   payload,
-	}
-	s.wsMu.RLock()
-	clients := make([]*websocket.Conn, 0, len(s.wsClients))
-	for conn := range s.wsClients {
-		clients = append(clients, conn)
-	}
-	s.wsMu.RUnlock()
-	for _, conn := range clients {
-		if err := conn.WriteJSON(envelope); err != nil {
-			s.wsMu.Lock()
-			delete(s.wsClients, conn)
-			s.wsMu.Unlock()
-			_ = conn.Close()
-		}
-	}
-}
-
 func (s *Server) handleOpenIDConfiguration(w http.ResponseWriter, r *http.Request) {
 	issuer := s.cfg.Issuer
 	writeJSON(w, http.StatusOK, map[string]any{
 		"issuer":                                issuer,
-		"authorization_endpoint":                issuer + "/oauth2/authorize",
-		"token_endpoint":                        issuer + "/oauth2/token",
+		"authorization_endpoint":                issuer + canonicalOAuth2BasePath + "/authorize",
+		"token_endpoint":                        issuer + canonicalOAuth2BasePath + "/token",
 		"token_endpoint_auth_methods_supported": []string{"client_secret_basic", "client_secret_post", "none"},
-		"jwks_uri":                              issuer + "/openid/jwks",
-		"userinfo_endpoint":                     issuer + "/openid/userinfo",
-		"revocation_endpoint":                   issuer + "/oauth2/revoke",
-		"introspection_endpoint":                issuer + "/oauth2/introspect",
+		"jwks_uri":                              issuer + canonicalOpenIDBasePath + "/jwks",
+		"userinfo_endpoint":                     issuer + canonicalOpenIDBasePath + "/userinfo",
+		"revocation_endpoint":                   issuer + canonicalOAuth2BasePath + "/revoke",
+		"introspection_endpoint":                issuer + canonicalOAuth2BasePath + "/introspect",
 		"response_types_supported":              []string{"code"},
 		"grant_types_supported":                 []string{"authorization_code", "refresh_token"},
 		"subject_types_supported":               []string{"public"},
@@ -1033,11 +979,11 @@ func (s *Server) handleOAuthMetadata(w http.ResponseWriter, r *http.Request) {
 	issuer := s.cfg.Issuer
 	writeJSON(w, http.StatusOK, map[string]any{
 		"issuer":                   issuer,
-		"authorization_endpoint":   issuer + "/oauth2/authorize",
-		"token_endpoint":           issuer + "/oauth2/token",
-		"jwks_uri":                 issuer + "/openid/jwks",
-		"revocation_endpoint":      issuer + "/oauth2/revoke",
-		"introspection_endpoint":   issuer + "/oauth2/introspect",
+		"authorization_endpoint":   issuer + canonicalOAuth2BasePath + "/authorize",
+		"token_endpoint":           issuer + canonicalOAuth2BasePath + "/token",
+		"jwks_uri":                 issuer + canonicalOpenIDBasePath + "/jwks",
+		"revocation_endpoint":      issuer + canonicalOAuth2BasePath + "/revoke",
+		"introspection_endpoint":   issuer + canonicalOAuth2BasePath + "/introspect",
 		"response_types_supported": []string{"code"},
 		"grant_types_supported":    []string{"authorization_code", "refresh_token"},
 	})
@@ -1065,7 +1011,7 @@ func (s *Server) handleOpenIDUserInfo(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleOpenIDLoginPage(w http.ResponseWriter, r *http.Request) {
 	next := strings.TrimSpace(r.URL.Query().Get("next"))
 	if next == "" {
-		next = "/oauth2/authorize"
+		next = canonicalOAuth2BasePath + "/authorize"
 	}
 	data := map[string]any{
 		"Next":  next,
@@ -1078,18 +1024,18 @@ func (s *Server) handleOpenIDLoginPage(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleOpenIDLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, "/openid/login?error=1", http.StatusFound)
+		http.Redirect(w, r, canonicalOpenIDBasePath+"/login?error=1", http.StatusFound)
 		return
 	}
 	username := strings.TrimSpace(r.FormValue("username"))
 	password := r.FormValue("password")
 	next := strings.TrimSpace(r.FormValue("next"))
 	if next == "" {
-		next = "/oauth2/authorize"
+		next = canonicalOAuth2BasePath + "/authorize"
 	}
 	user, err := s.store.FindUserByUsername(username)
 	if err != nil || user.Status != "ACTIVE" || bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)) != nil {
-		http.Redirect(w, r, "/openid/login?error=1&next="+url.QueryEscape(next), http.StatusFound)
+		http.Redirect(w, r, canonicalOpenIDBasePath+"/login?error=1&next="+url.QueryEscape(next), http.StatusFound)
 		return
 	}
 	sessionID := uuid.NewString()
@@ -1103,7 +1049,7 @@ func (s *Server) handleOpenIDLoginSubmit(w http.ResponseWriter, r *http.Request)
 func (s *Server) handleOpenIDConsentPage(w http.ResponseWriter, r *http.Request) {
 	oauthUser, ok := s.currentOAuthUser(r)
 	if !ok {
-		http.Redirect(w, r, "/openid/login?next="+url.QueryEscape(r.URL.RequestURI()), http.StatusFound)
+		http.Redirect(w, r, canonicalOpenIDBasePath+"/login?next="+url.QueryEscape(r.URL.RequestURI()), http.StatusFound)
 		return
 	}
 	clientID := strings.TrimSpace(r.URL.Query().Get("client_id"))
@@ -1140,7 +1086,7 @@ func (s *Server) handleOpenIDConsentPage(w http.ResponseWriter, r *http.Request)
 func (s *Server) handleOpenIDConsentSubmit(w http.ResponseWriter, r *http.Request) {
 	oauthUser, ok := s.currentOAuthUser(r)
 	if !ok {
-		http.Redirect(w, r, "/openid/login?next="+url.QueryEscape(r.URL.RequestURI()), http.StatusFound)
+		http.Redirect(w, r, canonicalOpenIDBasePath+"/login?next="+url.QueryEscape(r.URL.RequestURI()), http.StatusFound)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -1187,7 +1133,7 @@ func (s *Server) handleOpenIDConsentSubmit(w http.ResponseWriter, r *http.Reques
 	if challengeMethod != "" {
 		query.Set("code_challenge_method", challengeMethod)
 	}
-	http.Redirect(w, r, "/oauth2/authorize?"+query.Encode(), http.StatusFound)
+	http.Redirect(w, r, canonicalOAuth2BasePath+"/authorize?"+query.Encode(), http.StatusFound)
 }
 
 func (s *Server) currentOAuthUser(r *http.Request) (model.OAuthUserSession, bool) {
@@ -1244,7 +1190,7 @@ func (s *Server) handleOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 	userSession, ok := s.currentOAuthUser(r)
 	if !ok {
 		next := r.URL.RequestURI()
-		http.Redirect(w, r, "/openid/login?next="+url.QueryEscape(next), http.StatusFound)
+		http.Redirect(w, r, canonicalOpenIDBasePath+"/login?next="+url.QueryEscape(next), http.StatusFound)
 		return
 	}
 	requestedScopes := splitScopes(scopeParam)
@@ -1266,7 +1212,7 @@ func (s *Server) handleOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 			params.Set("code_challenge", codeChallenge)
 			params.Set("code_challenge_method", challengeMethod)
 		}
-		http.Redirect(w, r, "/openid/consent?"+params.Encode(), http.StatusFound)
+		http.Redirect(w, r, canonicalOpenIDBasePath+"/consent?"+params.Encode(), http.StatusFound)
 		return
 	}
 	code, err := randomToken(32)

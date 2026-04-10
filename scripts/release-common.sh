@@ -223,7 +223,10 @@ write_program_manifest() {
     "spa": true
   },
   "api": {
-    "enabled": true
+    "enabled": true,
+    "adminBaseUrl": "/admin/api/",
+    "openidBaseUrl": "/api/openid/",
+    "oauth2BaseUrl": "/api/oauth2/"
   },
   "backend": {
     "entry": "$backend_entry"

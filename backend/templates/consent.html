@@ -21,7 +21,7 @@
     <h1>Authorize Access</h1>
     <p><strong>{{.clientName}}</strong> requests permissions for <strong>{{.principalName}}</strong>.</p>
 
-    <form method="post" action="/openid/consent">
+    <form method="post" action="/api/openid/consent">
         <input type="hidden" name="client_id" value="{{.clientId}}" />
         <input type="hidden" name="state" value="{{.state}}" />
         <input type="hidden" name="redirect_uri" value="{{.redirectUri}}" />

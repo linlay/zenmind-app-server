@@ -1,3 +1,5 @@
+import { buildAdminApiUrl } from '../config/urls';
+
 const unauthorizedListeners = new Set();
 
 export class ApiError extends Error {
@@ -40,11 +42,12 @@ export function getErrorMessage(error, fallback = 'Request failed') {
 export async function request(path, options = {}) {
   const { skipAuthRedirect = false, headers: optionHeaders, ...fetchOptions } = options;
   const headers = { ...(optionHeaders || {}) };
+  const requestUrl = buildAdminApiUrl(path);
   if (fetchOptions.body && !(fetchOptions.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
   }
 
-  const response = await fetch(path, {
+  const response = await fetch(requestUrl, {
     ...fetchOptions,
     headers,
     credentials: 'include'
@@ -73,7 +76,7 @@ export async function request(path, options = {}) {
     });
 
     if (handled) {
-      emitUnauthorized({ path, status: response.status, message });
+      emitUnauthorized({ path: requestUrl, status: response.status, message });
     }
 
     throw error;

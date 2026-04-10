@@ -7,7 +7,7 @@ export function useAuthSession() {
 
   const refresh = useCallback(async () => {
     try {
-      const me = await request('/admin/api/session/me', { skipAuthRedirect: true });
+      const me = await request('/session/me', { skipAuthRedirect: true });
       setSession(me);
     } catch {
       setSession(null);

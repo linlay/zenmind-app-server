@@ -52,7 +52,7 @@ export function AccountsPage() {
   const loadUsers = async () => {
     setLoadingUsers(true);
     try {
-      const data = await request('/admin/api/users');
+      const data = await request('/users');
       setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
       const message = getErrorMessage(err, 'Failed to load users');
@@ -68,7 +68,7 @@ export function AccountsPage() {
   const loadClients = async () => {
     setLoadingClients(true);
     try {
-      const data = await request('/admin/api/clients');
+      const data = await request('/clients');
       setClients(Array.isArray(data) ? data : []);
     } catch (err) {
       const message = getErrorMessage(err, 'Failed to load clients');
@@ -95,7 +95,7 @@ export function AccountsPage() {
     setUserSubmitting(true);
     setUserFormError('');
     try {
-      await request('/admin/api/users', {
+      await request('/users', {
         method: 'POST',
         body: JSON.stringify(userForm)
       });
@@ -119,7 +119,7 @@ export function AccountsPage() {
     setClientSubmitting(true);
     setClientFormError('');
     try {
-      await request('/admin/api/clients', {
+      await request('/clients', {
         method: 'POST',
         body: JSON.stringify(parsedClientPayload)
       });
@@ -141,7 +141,7 @@ export function AccountsPage() {
   const toggleUserStatus = async (user) => {
     const status = user.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
     try {
-      await request(`/admin/api/users/${user.userId}/status`, {
+      await request(`/users/${user.userId}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status })
       });
@@ -161,7 +161,7 @@ export function AccountsPage() {
     if (!password) return;
 
     try {
-      await request(`/admin/api/users/${user.userId}/password`, {
+      await request(`/users/${user.userId}/password`, {
         method: 'POST',
         body: JSON.stringify({ password })
       });
@@ -178,7 +178,7 @@ export function AccountsPage() {
   const toggleClientStatus = async (client) => {
     const status = client.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
     try {
-      await request(`/admin/api/clients/${client.clientId}/status`, {
+      await request(`/clients/${client.clientId}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status })
       });
@@ -195,7 +195,7 @@ export function AccountsPage() {
 
   const rotateSecret = async (client) => {
     try {
-      const result = await request(`/admin/api/clients/${client.clientId}/secret/rotate`, {
+      const result = await request(`/clients/${client.clientId}/secret/rotate`, {
         method: 'POST'
       });
       setNewSecret(`${result.clientId}: ${result.newClientSecret}`);

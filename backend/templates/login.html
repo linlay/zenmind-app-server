@@ -18,7 +18,7 @@
 <div class="card">
     <h1>Account Login</h1>
     {{if .Error}}<div class="error">Invalid username or password.</div>{{end}}
-    <form method="post" action="/openid/login">
+    <form method="post" action="/api/openid/login">
         <input type="hidden" name="next" value="{{.Next}}" />
 
         <label for="username">Username</label>

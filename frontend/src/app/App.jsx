@@ -17,7 +17,7 @@ export default function App() {
 
   const logout = async () => {
     try {
-      await request('/admin/api/session/logout', { method: 'POST' });
+      await request('/session/logout', { method: 'POST' });
       setSession(null);
       navigate('/login');
       toast.success('Signed out');

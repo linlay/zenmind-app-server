@@ -57,7 +57,7 @@ export function AppAccessPage() {
   };
 
   const loadDevices = async ({ resetPage = false } = {}) => {
-    const data = await request('/admin/api/security/app-devices');
+    const data = await request('/security/app-devices');
     const rows = Array.isArray(data) ? data : [];
     setDevices(rows);
     setDevicePage((prev) => {
@@ -72,7 +72,7 @@ export function AppAccessPage() {
     params.set('sources', nextFilter.sources || initialTokenFilter.sources);
     params.set('status', nextFilter.status || initialTokenFilter.status);
     params.set('limit', String(nextFilter.limit || initialTokenFilter.limit));
-    const data = await request(`/admin/api/security/tokens?${params.toString()}`);
+    const data = await request(`/security/tokens?${params.toString()}`);
     const rows = Array.isArray(data) ? data : [];
     setTokens(rows);
     setTokenPage((prev) => {
@@ -106,7 +106,7 @@ export function AppAccessPage() {
     setError('');
     setSuccess('');
     try {
-      await request(`/admin/api/security/app-devices/${device.deviceId}/revoke`, {
+      await request(`/security/app-devices/${device.deviceId}/revoke`, {
         method: 'POST'
       });
       setSuccess(`Device revoked: ${device.deviceName}`);

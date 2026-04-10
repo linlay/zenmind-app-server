@@ -73,12 +73,12 @@ export function SecurityPage() {
   };
 
   const loadJwks = async () => {
-    const data = await request('/admin/api/security/jwks');
+    const data = await request('/security/jwks');
     setJwks(data);
   };
 
   const loadNewDeviceAccess = async () => {
-    const data = await request('/admin/api/security/new-device-access');
+    const data = await request('/security/new-device-access');
     setNewDeviceAccess(Boolean(data?.allowNewDeviceLogin));
   };
 
@@ -113,7 +113,7 @@ export function SecurityPage() {
         deviceName: issueForm.deviceName,
         accessTtlSeconds: accessTtlToSeconds(issueForm.accessTtl)
       };
-      const result = await request('/admin/api/security/app-tokens/issue', {
+      const result = await request('/security/app-tokens/issue', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
@@ -140,7 +140,7 @@ export function SecurityPage() {
         deviceToken: refreshForm.deviceToken,
         accessTtlSeconds: accessTtlToSeconds(refreshForm.accessTtl)
       };
-      const result = await request('/admin/api/security/app-tokens/refresh', {
+      const result = await request('/security/app-tokens/refresh', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
@@ -166,7 +166,7 @@ export function SecurityPage() {
       if (!key?.e || !key?.n) {
         throw new Error('No JWK key found');
       }
-      const result = await request('/admin/api/security/public-key/generate', {
+      const result = await request('/security/public-key/generate', {
         method: 'POST',
         body: JSON.stringify({ e: key.e, n: key.n })
       });
@@ -188,7 +188,7 @@ export function SecurityPage() {
     setUpdatingNewDeviceAccess(true);
 
     try {
-      const result = await request('/admin/api/security/new-device-access', {
+      const result = await request('/security/new-device-access', {
         method: 'PUT',
         body: JSON.stringify({ allowNewDeviceLogin: nextValue })
       });

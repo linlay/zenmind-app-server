@@ -115,7 +115,10 @@ Windows：
     "spa": true
   },
   "api": {
-    "enabled": true
+    "enabled": true,
+    "adminBaseUrl": "/admin/api/",
+    "openidBaseUrl": "/api/openid/",
+    "oauth2BaseUrl": "/api/oauth2/"
   },
   "backend": {
     "entry": "backend/zenmind-app-server"
@@ -145,7 +148,10 @@ Windows 示例：
     "spa": true
   },
   "api": {
-    "enabled": true
+    "enabled": true,
+    "adminBaseUrl": "/admin/api/",
+    "openidBaseUrl": "/api/openid/",
+    "oauth2BaseUrl": "/api/oauth2/"
   },
   "backend": {
     "entry": "backend/zenmind-app-server.exe"
@@ -162,8 +168,11 @@ Windows 示例：
 
 - `frontend.dist` / `frontend.index` / `frontend.spa`：宿主 Node HTTP server 用来注册前端静态目录、页面入口与 SPA fallback 规则
 - `api.enabled`：宿主 Node HTTP server 用来决定是否为该 bundle 注册 API 路由能力
+- `api.adminBaseUrl`：管理 API 的公开入口前缀
+- `api.openidBaseUrl`：OIDC 公开入口前缀
+- `api.oauth2BaseUrl`：OAuth2 公开入口前缀
 - `backend.entry`：宿主或部署脚本用来定位 backend 可执行文件
-- 宿主机集成时，`baseUrl` 约定为 `/<appId>/`，API 路由约定为 `/<appId>/api/`
+- 前端 UI 公共入口固定为 `/admin/`
 
 强制约束：
 
@@ -179,10 +188,10 @@ Windows 示例：
 
 - 前端静态资源只保留在 `frontend/dist/`
 - Program Bundle 本身不包含 frontend 进程
-- `/admin/`、`/admin/api/`、`/oauth2/`、`/openid/` 的最终注册和转发由宿主系统负责
+- `/admin/`、`/admin/api/`、`/api/openid/`、`/api/oauth2/` 的最终注册和转发由宿主系统负责
 - 镜像部署模式下，这些路由由 nginx frontend 容器负责
 - 前端仍需支持基于 `/admin/` 的运行
-- 宿主机接入 Node HTTP server 时，前端页面挂载到 `/<appId>/`，对应 API 前缀为 `/<appId>/api/`
+- 宿主机接入 Node HTTP server 时，API 路由应直接使用 manifest 中声明的公开前缀
 
 后端：
 
@@ -240,11 +249,11 @@ Windows 示例：
 
 1. 读取 bundle 根目录下的 `manifest.json`
 2. 根据 `frontend` 字段注册前端静态目录、入口页和 SPA fallback
-3. 根据 `api.enabled` 决定是否为该 bundle 注册 API 路由能力
+3. 根据 `api.enabled` 决定是否为该 bundle 注册 API 路由能力，并读取 `api.adminBaseUrl`、`api.openidBaseUrl`、`api.oauth2BaseUrl`
 4. 根据 `backend.entry` 找到 backend 可执行文件
 5. 使用 `scripts.start` / `scripts.stop` / `scripts.deploy` 调用当前平台入口以管理 backend
-6. 由宿主 Node HTTP server 或前置 nginx 按 `/<appId>/` 与 `/<appId>/api/` 规则注册前端与 API 路由
-7. OIDC / OAuth2 路由按部署入口继续暴露
+6. 由宿主 Node HTTP server 或前置 nginx 按 `/admin/`、`/admin/api/`、`/api/openid/`、`/api/oauth2/` 规则注册前端与协议/API 路由
+7. 旧 `/openid/`、`/oauth2/` 可作为兼容别名保留一个过渡版本
 
 ## 9. 最终 Checklist
 

@@ -24,6 +24,13 @@ function resolveProxyTarget(env, cwd) {
   return configured;
 }
 
+function createProxyEntry(target) {
+  return {
+    target,
+    changeOrigin: true
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadRootEnv(mode, process.cwd());
   const base = env.VITE_BASE_PATH || '/admin/';
@@ -31,6 +38,12 @@ export default defineConfig(({ mode }) => {
   const strictPort = (env.VITE_DEV_STRICT_PORT || 'true').toLowerCase() !== 'false';
   const proxyPath = env.VITE_API_PROXY_PATH || '/admin/api';
   const proxyTarget = resolveProxyTarget(env, process.cwd());
+  const proxy = {
+    [proxyPath]: createProxyEntry(proxyTarget),
+    '/api': createProxyEntry(proxyTarget),
+    '/oauth2': createProxyEntry(proxyTarget),
+    '/openid': createProxyEntry(proxyTarget)
+  };
 
   return {
     plugins: [react()],
@@ -38,12 +51,7 @@ export default defineConfig(({ mode }) => {
     server: {
       port: Number.isNaN(port) ? 11950 : port,
       strictPort,
-      proxy: {
-        [proxyPath]: {
-          target: proxyTarget,
-          changeOrigin: true
-        }
-      }
+      proxy
     }
   };
 });

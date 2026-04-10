@@ -9,15 +9,15 @@ zenmind-app-server — Program Bundle
 1. 复制 .env.example 为 .env，填入真实配置值。
 2. 运行 `./deploy.sh`，确认 frontend/dist 与 backend 二进制等运行条件已就绪。
 3. macOS / Linux 运行 `./start.sh`；Windows 运行 `./start.ps1`。
-4. 宿主 nginx 或部署系统负责把 `/admin/`、`/admin/api`、`/oauth2`、`/openid` 路由到正确入口。
+4. 宿主 nginx 或部署系统负责把 `/admin/`、`/admin/api`、`/api/openid`、`/api/oauth2` 路由到正确入口；旧 `/openid`、`/oauth2` 仅作兼容。
 5. 停止 backend 时，macOS / Linux 运行 `./stop.sh`；Windows 运行 `./stop.ps1`。
 
 宿主接入约定
 ============
 
 - 宿主 Node HTTP server 读取 `manifest.json` 注册前端与 API 路由。
-- `baseUrl` 使用 `/<appId>/`
-- API 使用 `/<appId>/api/`
+- 前端 UI 公共入口固定为 `/admin/`
+- API 公开前缀以 `manifest.json` 的 `api.adminBaseUrl`、`api.openidBaseUrl`、`api.oauth2BaseUrl` 为准
 
 目录说明
 ========

@@ -19,7 +19,7 @@ export function UsersPage() {
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const data = await request('/admin/api/users');
+      const data = await request('/users');
       setUsers(Array.isArray(data) ? data : []);
       setError('');
     } catch (err) {
@@ -43,7 +43,7 @@ export function UsersPage() {
     setError('');
 
     try {
-      await request('/admin/api/users', {
+      await request('/users', {
         method: 'POST',
         body: JSON.stringify(form)
       });
@@ -64,7 +64,7 @@ export function UsersPage() {
   const toggleStatus = async (user) => {
     const status = user.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
     try {
-      await request(`/admin/api/users/${user.userId}/status`, {
+      await request(`/users/${user.userId}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status })
       });
@@ -84,7 +84,7 @@ export function UsersPage() {
     if (!password) return;
 
     try {
-      await request(`/admin/api/users/${user.userId}/password`, {
+      await request(`/users/${user.userId}/password`, {
         method: 'POST',
         body: JSON.stringify({ password })
       });

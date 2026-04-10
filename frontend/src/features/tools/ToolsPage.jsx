@@ -30,7 +30,7 @@ export function ToolsPage() {
     setSuccess('');
 
     try {
-      const result = await request('/admin/api/bcrypt/generate', {
+      const result = await request('/bcrypt/generate', {
         method: 'POST',
         body: JSON.stringify({ password: bcryptPassword })
       });
@@ -52,7 +52,7 @@ export function ToolsPage() {
     setSuccess('');
 
     try {
-      const result = await request('/admin/api/security/public-key/generate', {
+      const result = await request('/security/public-key/generate', {
         method: 'POST',
         body: JSON.stringify({ e: jwkForm.e, n: jwkForm.n })
       });
@@ -73,7 +73,7 @@ export function ToolsPage() {
     setSuccess('');
 
     try {
-      const result = await request('/admin/api/security/key-pair/generate', {
+      const result = await request('/security/key-pair/generate', {
         method: 'POST'
       });
       setKeyPairResult(result);

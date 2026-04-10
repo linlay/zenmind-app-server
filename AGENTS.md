@@ -21,7 +21,7 @@
 ## 3. 架构设计
 
 - 浏览器访问 `/admin/`
-- 前端网关代理 `/admin/api/*`、`/oauth2/*`、`/openid/*` 到 backend
+- 前端网关代理 `/admin/api/*`、`/api/*` 到 backend，并兼容旧 `/oauth2/*`、`/openid/*`
 - backend 负责认证、授权、管理 API 和 SQLite 持久化
 - 当前版本不再把外部可编辑配置文件作为默认部署能力
 
@@ -45,9 +45,8 @@
 
 - Admin：`/admin/api/*`
 - App Auth：`/api/auth/*`
-- App Event：`/api/app/*`
-- OAuth2：`/oauth2/*`
-- OIDC：`/openid/*`
+- OAuth2：`/api/oauth2/*`
+- OIDC：`/api/openid/*`
 
 ## 7. 开发要点
 

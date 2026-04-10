@@ -40,7 +40,7 @@ export function ClientsPage() {
   const loadClients = async () => {
     setLoading(true);
     try {
-      const data = await request('/admin/api/clients');
+      const data = await request('/clients');
       setClients(Array.isArray(data) ? data : []);
       setError('');
     } catch (err) {
@@ -64,7 +64,7 @@ export function ClientsPage() {
     setError('');
 
     try {
-      await request('/admin/api/clients', {
+      await request('/clients', {
         method: 'POST',
         body: JSON.stringify(parsedPayload)
       });
@@ -85,7 +85,7 @@ export function ClientsPage() {
   const toggleStatus = async (client) => {
     const status = client.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
     try {
-      await request(`/admin/api/clients/${client.clientId}/status`, {
+      await request(`/clients/${client.clientId}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status })
       });
@@ -102,7 +102,7 @@ export function ClientsPage() {
 
   const rotateSecret = async (client) => {
     try {
-      const result = await request(`/admin/api/clients/${client.clientId}/secret/rotate`, {
+      const result = await request(`/clients/${client.clientId}/secret/rotate`, {
         method: 'POST'
       });
       setNewSecret(`${result.clientId}: ${result.newClientSecret}`);
