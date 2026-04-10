@@ -47,7 +47,7 @@ func main() {
 
 	httpServer := &http.Server{
 		Addr:              ":" + strconv.Itoa(cfg.ServerPort),
-		Handler:           server.Handler(),
+		Handler:           app.NewProgramHandler(cfg.FrontendDistDir, server.Handler()),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,

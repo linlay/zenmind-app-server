@@ -9,6 +9,10 @@
 - `backend/`：Go API，容器内固定监听 `8080`
 - `frontend/`：React 管理台与前端网关，对外暴露 `/admin/`
 
+### Program Mode
+
+backend 支持以单进程模式运行，同时提供 API 和前端静态文件服务。当设置 `FRONTEND_DIST_DIR` 环境变量时，backend 从该目录提供管理前端。此模式支持桌面集成，无需 Docker。
+
 ## 2. 技术栈
 
 - Backend：Go 1.23
@@ -24,6 +28,7 @@
 - 前端网关代理 `/admin/api/*`、`/oauth2/*`、`/openid/*` 到 backend
 - backend 负责认证、授权、管理 API 和 SQLite 持久化
 - 当前版本不再把外部可编辑配置文件作为默认部署能力
+- `backend/internal/app/program_handler.go` 使 backend 可在单进程中同时提供 API 和前端静态文件。路由分发：`/admin/api/*`、`/oauth2/*`、`/openid/*`、`/api/*` 走 API handler；`/admin/*` 提供 SPA 前端；`/` 重定向到 `/admin/`
 
 ## 4. 目录结构
 
@@ -32,6 +37,8 @@
 - `backend/`：Go 服务
 - `frontend/`：管理台和前端网关
 - `data/`：SQLite 持久化目录
+- `scripts/release-program.sh`：Program 模式发布脚本
+- `scripts/release-program-assets/`：Program 发布所需资源文件
 
 ## 5. 数据结构
 
@@ -48,6 +55,7 @@
 - App Event：`/api/app/*`
 - OAuth2：`/oauth2/*`
 - OIDC：`/openid/*`
+- `GET /admin/api/security/key-pair/export`：导出存储的 JWK 密钥对为 PEM 格式（需 admin 认证）
 
 ## 7. 开发要点
 
@@ -63,9 +71,11 @@
 2. `docker compose up -d --build`
 3. 后端改动后执行 `make backend-test`
 4. 前端改动后执行 `make frontend-build`
+5. `make release-program`：构建单二进制 program 发布包，用于桌面集成（类似 agent-container-hub 模式）。包含 Go 二进制、frontend dist、schema.sql、启停脚本和 .env.example
 
 ## 9. 已知约束与注意事项
 
 - backend 仅容器网络访问
 - frontend 是唯一默认对外入口
 - 公开 issuer 必须与真实部署入口一致
+- 已支持 program mode（单二进制）用于桌面集成，与 Docker-first 部署模型并存
