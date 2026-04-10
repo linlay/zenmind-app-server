@@ -1,0 +1,207 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+RELEASE_ASSETS_DIR="$SCRIPT_DIR/release-assets"
+RELEASE_DIST_DIR="$REPO_ROOT/dist/release"
+APP_NAME="zenmind-app-server"
+DEFAULT_PROGRAM_TARGET_MATRIX="darwin/arm64,windows/amd64"
+
+die() { echo "[release] $*" >&2; exit 1; }
+log() { echo "[release] $*"; }
+require_file() { [[ -f "$1" ]] || die "missing required file: $1"; }
+require_dir() { [[ -d "$1" ]] || die "missing required directory: $1"; }
+require_cmd() { command -v "$1" >/dev/null 2>&1 || die "$1 is required"; }
+
+normalize_arch() {
+  local raw="${1:-}"
+  case "$raw" in
+    x86_64|amd64) printf 'amd64\n' ;;
+    arm64|aarch64) printf 'arm64\n' ;;
+    *)
+      die "unsupported ARCH: $raw (allowed: amd64|arm64)"
+      ;;
+  esac
+}
+
+validate_os() {
+  case "${1:-}" in
+    darwin|windows|linux) ;;
+    *)
+      die "unsupported OS: ${1:-} (allowed: darwin|windows|linux)"
+      ;;
+  esac
+}
+
+validate_target_pair() {
+  local os="$1"
+  local arch="$2"
+  validate_os "$os"
+  case "$arch" in
+    amd64|arm64) ;;
+    *)
+      die "unsupported ARCH: $arch (allowed: amd64|arm64)"
+      ;;
+  esac
+}
+
+resolve_version() {
+  local version_value="${VERSION:-}"
+  if [[ -z "$version_value" ]]; then
+    require_file "$REPO_ROOT/VERSION"
+    version_value="$(tr -d '[:space:]' < "$REPO_ROOT/VERSION")"
+  fi
+  [[ -n "$version_value" ]] || die "VERSION must not be empty"
+  [[ "$version_value" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "VERSION must match vX.Y.Z (got: $version_value)"
+  printf '%s\n' "$version_value"
+}
+
+detect_host_arch() {
+  normalize_arch "$(uname -m)"
+}
+
+load_bundle_env() {
+  local root_env_source="$REPO_ROOT/.env.example"
+  if [[ -f "$REPO_ROOT/.env" ]]; then
+    root_env_source="$REPO_ROOT/.env"
+  fi
+  set -a
+  . "$root_env_source"
+  set +a
+}
+
+prepare_release_context() {
+  VERSION="$(resolve_version)"
+  ARCH="$(normalize_arch "${ARCH:-$(detect_host_arch)}")"
+  load_bundle_env
+  VITE_BASE_PATH="${VITE_BASE_PATH:-/admin/}"
+  GOPROXY="${GOPROXY:-https://goproxy.cn,direct}"
+  NPM_REGISTRY="${NPM_REGISTRY:-https://registry.npmmirror.com}"
+  RELEASE_DRY_RUN="${RELEASE_DRY_RUN:-0}"
+}
+
+ensure_release_requirements() {
+  require_file "$REPO_ROOT/.env.example"
+  require_file "$REPO_ROOT/backend/go.mod"
+  require_file "$REPO_ROOT/backend/schema.sql"
+  require_file "$REPO_ROOT/frontend/package.json"
+  require_file "$REPO_ROOT/backend/Dockerfile.release"
+  require_file "$REPO_ROOT/frontend/Dockerfile.release"
+  require_cmd go
+  require_cmd npm
+}
+
+ensure_image_requirements() {
+  ensure_release_requirements
+  require_cmd docker
+  docker buildx version >/dev/null 2>&1 || die "docker buildx is required"
+}
+
+ensure_release_dist() {
+  mkdir -p "$RELEASE_DIST_DIR"
+}
+
+bundle_filename() {
+  local bundle_type="$1"
+  local version="$2"
+  local os="$3"
+  local arch="$4"
+  printf '%s-%s-%s-%s-%s.tar.gz\n' "$APP_NAME" "$bundle_type" "$version" "$os" "$arch"
+}
+
+copy_env_example_with_version() {
+  local dest="$1"
+  cp "$REPO_ROOT/.env.example" "$dest"
+  perl -0pi -e 's/^APP_SERVER_VERSION=.*/APP_SERVER_VERSION='"$VERSION"'/m' "$dest"
+  grep -q "^APP_SERVER_VERSION=$VERSION$" "$dest" || die "failed to set APP_SERVER_VERSION in $dest"
+}
+
+write_runtime_registry() {
+  local dest="$1"
+  cat > "$dest" <<'EOF'
+files: []
+EOF
+}
+
+build_frontend_dist() {
+  local output_dir="$1"
+  mkdir -p "$output_dir"
+  log "building frontend assets on host..."
+  (
+    cd "$REPO_ROOT/frontend"
+    npm config set registry "$NPM_REGISTRY" >/dev/null
+    npm ci
+    VITE_BASE_PATH="$VITE_BASE_PATH" npm run build
+  )
+  cp -R "$REPO_ROOT/frontend/dist/." "$output_dir/"
+}
+
+build_backend_binary() {
+  local target_os="$1"
+  local target_arch="$2"
+  local output_path="$3"
+  mkdir -p "$(dirname "$output_path")"
+  log "building backend binary for $target_os/$target_arch..."
+  (
+    cd "$REPO_ROOT/backend"
+    GOPROXY="$GOPROXY" \
+    GOOS="$target_os" \
+    GOARCH="$target_arch" \
+    CGO_ENABLED=0 \
+    go build -trimpath -ldflags='-s -w -buildid=' -o "$output_path" ./cmd/server
+  )
+}
+
+build_frontend_gateway_binary() {
+  local target_os="$1"
+  local target_arch="$2"
+  local output_path="$3"
+  mkdir -p "$(dirname "$output_path")"
+  log "building frontend gateway for $target_os/$target_arch..."
+  (
+    cd "$REPO_ROOT/frontend"
+    GOPROXY="$GOPROXY" \
+    GOOS="$target_os" \
+    GOARCH="$target_arch" \
+    CGO_ENABLED=0 \
+    go build -trimpath -ldflags='-s -w -buildid=' -o "$output_path" ./proxy/main.go
+  )
+}
+
+program_target_matrix_lines() {
+  local matrix="${PROGRAM_TARGET_MATRIX:-}"
+  local targets="${PROGRAM_TARGETS:-}"
+  local arch_value="${ARCH:-}"
+  local item os_value arch_part
+
+  if [[ -n "$matrix" ]]; then
+    IFS=',' read -r -a __release_pairs <<< "$matrix"
+    for item in "${__release_pairs[@]}"; do
+      item="$(printf '%s' "$item" | xargs)"
+      [[ -n "$item" ]] || continue
+      if [[ "$item" != */* ]]; then
+        die "PROGRAM_TARGET_MATRIX entries must be os/arch (got: $item)"
+      fi
+      os_value="${item%%/*}"
+      arch_part="${item##*/}"
+      validate_target_pair "$os_value" "$arch_part"
+      printf '%s/%s\n' "$os_value" "$arch_part"
+    done
+    return
+  fi
+
+  if [[ -n "$targets" ]]; then
+    arch_value="$(normalize_arch "$arch_value")"
+    IFS=',' read -r -a __release_targets <<< "$targets"
+    for item in "${__release_targets[@]}"; do
+      os_value="$(printf '%s' "$item" | xargs)"
+      [[ -n "$os_value" ]] || continue
+      validate_target_pair "$os_value" "$arch_value"
+      printf '%s/%s\n' "$os_value" "$arch_value"
+    done
+    return
+  fi
+
+  PROGRAM_TARGET_MATRIX="$DEFAULT_PROGRAM_TARGET_MATRIX" program_target_matrix_lines
+}

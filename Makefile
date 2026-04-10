@@ -1,7 +1,7 @@
-VERSION := $(shell cat VERSION 2>/dev/null)
-ARCH := $(shell uname -m | sed 's/^x86_64$$/amd64/' | sed 's/^aarch64$$/arm64/' | sed 's/^arm64$$/arm64/' | sed 's/^amd64$$/amd64/')
+VERSION ?= $(shell cat VERSION 2>/dev/null)
+ARCH ?= $(shell uname -m | sed 's/^x86_64$$/amd64/' | sed 's/^aarch64$$/arm64/' | sed 's/^arm64$$/arm64/' | sed 's/^amd64$$/amd64/')
 
-.PHONY: backend-build backend-test frontend-build docker-build docker-up docker-down size-check config-sync release clean
+.PHONY: backend-build backend-test frontend-build docker-build docker-up docker-down size-check config-sync release release-program release-image clean
 
 backend-build:
 	cd backend && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags='-s -w -buildid=' -o app ./cmd/server
@@ -29,7 +29,13 @@ size-check:
 	@echo "frontend image size bytes:" && docker image inspect app-server-frontend --format '{{.Size}}'
 
 release:
-	VERSION=$(VERSION) ARCH=$(ARCH) bash scripts/release.sh
+	$(MAKE) release-program VERSION=$(VERSION) ARCH=$(ARCH) PROGRAM_TARGETS="$(PROGRAM_TARGETS)" PROGRAM_TARGET_MATRIX="$(PROGRAM_TARGET_MATRIX)"
+
+release-program:
+	VERSION=$(VERSION) ARCH=$(ARCH) PROGRAM_TARGETS="$(PROGRAM_TARGETS)" PROGRAM_TARGET_MATRIX="$(PROGRAM_TARGET_MATRIX)" bash scripts/release-program.sh
+
+release-image:
+	VERSION=$(VERSION) ARCH=$(ARCH) bash scripts/release-image.sh
 
 clean:
 	rm -f backend/app
