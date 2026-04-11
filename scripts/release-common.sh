@@ -198,21 +198,26 @@ write_program_manifest() {
   local target_os="$2"
   local target_arch="$3"
   local backend_entry="$4"
+  local asset_file_name="$5"
   local start_script="start.sh"
   local stop_script="stop.sh"
   local deploy_script="deploy.sh"
+  local program_common="scripts/program-common.sh"
 
   if [[ "$target_os" == "windows" ]]; then
     start_script="start.ps1"
     stop_script="stop.ps1"
     deploy_script="deploy.ps1"
+    program_common="scripts/program-common.ps1"
   fi
 
   cat > "$dest" <<EOF
 {
+  "kind": "builtin",
   "id": "$APP_NAME",
-  "name": "$APP_NAME",
+  "name": "认证服务",
   "version": "$VERSION",
+  "description": "认证与管理服务，提供 OAuth2/OIDC、管理后台、App 访问令牌和设备管理。",
   "platform": {
     "os": "$target_os",
     "arch": "$target_arch"
@@ -232,9 +237,41 @@ write_program_manifest() {
     "entry": "$backend_entry"
   },
   "scripts": {
-    "start": "$start_script",
+    "start": ["$start_script", "--daemon"],
     "stop": "$stop_script",
     "deploy": "$deploy_script"
+  },
+  "configFiles": [
+    {
+      "key": "env",
+      "label": ".env",
+      "relativePath": ".env",
+      "templateRelativePath": ".env.example",
+      "required": true
+    }
+  ],
+  "runtime": {
+    "pidRelativePath": "run/zenmind-app-server.pid",
+    "logRelativePath": "run/zenmind-app-server.log",
+    "requiredPaths": [
+      "$backend_entry",
+      "$start_script",
+      "$stop_script",
+      "$deploy_script",
+      "$program_common",
+      ".env.example",
+      "manifest.json",
+      "frontend/dist/index.html"
+    ]
+  },
+  "web": {
+    "routePath": "/admin/",
+    "portEnvKey": "SERVER_PORT",
+    "defaultPort": 11950
+  },
+  "desktop": {
+    "assetFileName": "$asset_file_name",
+    "bundleTopLevelDir": "$APP_NAME"
   }
 }
 EOF

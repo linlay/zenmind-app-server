@@ -1,73 +1,152 @@
-$script:BundleRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$script:EnvFile = Join-Path $script:BundleRoot '.env'
-$script:BackendBin = Join-Path $script:BundleRoot 'backend/zenmind-app-server.exe'
-$script:FrontendDir = Join-Path $script:BundleRoot 'frontend'
-$script:DistDir = Join-Path $script:FrontendDir 'dist'
-$script:RunDir = Join-Path $script:BundleRoot 'run'
-$script:LogDir = Join-Path $script:RunDir 'logs'
-$script:BackendLog = Join-Path $script:LogDir 'backend.log'
-$script:BackendPidFile = Join-Path $script:RunDir 'backend.pid'
-$script:DataDir = Join-Path $script:BundleRoot 'data'
+$ErrorActionPreference = 'Stop'
+
+$Script:ProgramCommonDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$Script:BundleRoot = Split-Path -Parent $Script:ProgramCommonDir
+$Script:AppName = 'zenmind-app-server'
+$Script:ManifestFile = Join-Path $Script:BundleRoot 'manifest.json'
+$Script:EnvExampleFile = Join-Path $Script:BundleRoot '.env.example'
+$Script:EnvFile = Join-Path $Script:BundleRoot '.env'
+$Script:BackendBin = Join-Path (Join-Path $Script:BundleRoot 'backend') 'zenmind-app-server.exe'
+$Script:FrontendDir = Join-Path $Script:BundleRoot 'frontend'
+$Script:DistDir = Join-Path $Script:FrontendDir 'dist'
+$Script:DataDir = Join-Path $Script:BundleRoot 'data'
+$Script:RunDir = Join-Path $Script:BundleRoot 'run'
+$Script:PidFile = Join-Path $Script:RunDir 'zenmind-app-server.pid'
+$Script:LogFile = Join-Path $Script:RunDir 'zenmind-app-server.log'
+
+function Fail-Program([string]$Message) {
+  throw "[program] $Message"
+}
+
+function Test-ProgramBundle {
+  if (-not (Test-Path -LiteralPath $Script:ManifestFile -PathType Leaf)) {
+    Fail-Program "required file not found: $Script:ManifestFile"
+  }
+  if (-not (Test-Path -LiteralPath $Script:EnvExampleFile -PathType Leaf)) {
+    Fail-Program "required file not found: $Script:EnvExampleFile"
+  }
+  if (-not (Test-Path -LiteralPath $Script:BackendBin -PathType Leaf)) {
+    Fail-Program "required file not found: $Script:BackendBin"
+  }
+  if (-not (Test-Path -LiteralPath $Script:DistDir -PathType Container)) {
+    Fail-Program "required directory not found: $Script:DistDir"
+  }
+  $indexPath = Join-Path $Script:DistDir 'index.html'
+  if (-not (Test-Path -LiteralPath $indexPath -PathType Leaf)) {
+    Fail-Program "required file not found: $indexPath"
+  }
+}
 
 function Import-ProgramEnv {
-    param([switch]$Optional)
+  if (-not (Test-Path -LiteralPath $Script:EnvFile -PathType Leaf)) {
+    Fail-Program 'missing .env (copy from .env.example first)'
+  }
 
-    if (-not (Test-Path $script:EnvFile)) {
-        if ($Optional) {
-            $env:SERVER_PORT = if ($env:SERVER_PORT) { $env:SERVER_PORT } else { '18080' }
-            $env:AUTH_DB_PATH = if ($env:AUTH_DB_PATH) { $env:AUTH_DB_PATH } else { '.\data\auth.db' }
-            return
-        }
-        throw "missing .env (copy from .env.example first)"
+  foreach ($rawLine in Get-Content -LiteralPath $Script:EnvFile) {
+    $line = $rawLine.Trim()
+    if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith('#')) {
+      continue
     }
-
-    Get-Content $script:EnvFile | ForEach-Object {
-        $line = $_.Trim()
-        if (-not $line -or $line.StartsWith('#')) { return }
-        $parts = $line -split '=', 2
-        if ($parts.Count -ne 2) { return }
-        $name = $parts[0].Trim()
-        $value = $parts[1].Trim()
-        if (($value.StartsWith("'") -and $value.EndsWith("'")) -or ($value.StartsWith('"') -and $value.EndsWith('"'))) {
-            $value = $value.Substring(1, $value.Length - 2)
-        }
-        [Environment]::SetEnvironmentVariable($name, $value, 'Process')
+    $index = $line.IndexOf('=')
+    if ($index -lt 1) {
+      continue
     }
+    $name = $line.Substring(0, $index).Trim()
+    $value = $line.Substring($index + 1).Trim()
+    if (($value.StartsWith("'") -and $value.EndsWith("'")) -or ($value.StartsWith('"') -and $value.EndsWith('"'))) {
+      $value = $value.Substring(1, $value.Length - 2)
+    }
+    [Environment]::SetEnvironmentVariable($name, $value, 'Process')
+  }
 
-    $env:SERVER_PORT = if ($env:SERVER_PORT) { $env:SERVER_PORT } else { '18080' }
-    $env:AUTH_DB_PATH = if ($env:AUTH_DB_PATH) { $env:AUTH_DB_PATH } else { '.\data\auth.db' }
+  if (-not $env:SERVER_PORT) {
+    $env:SERVER_PORT = '18080'
+  }
+  if (-not $env:AUTH_DB_PATH) {
+    $env:AUTH_DB_PATH = '.\data\auth.db'
+  }
 }
 
 function Initialize-ProgramRuntime {
-    New-Item -ItemType Directory -Force -Path $script:DataDir, $script:LogDir | Out-Null
+  New-Item -ItemType Directory -Force -Path $Script:DataDir, $Script:RunDir | Out-Null
 }
 
-function Initialize-ProgramBundle {
-    Initialize-ProgramRuntime
-    if (-not (Test-Path $script:BackendBin)) { throw "missing backend binary: $script:BackendBin" }
-    if (-not (Test-Path (Join-Path $script:DistDir 'index.html'))) { throw "missing frontend dist: $script:DistDir\index.html" }
+function Clear-StaleProgramPid {
+  if (-not (Test-Path -LiteralPath $Script:PidFile -PathType Leaf)) {
+    return
+  }
+
+  $pidValue = (Get-Content -LiteralPath $Script:PidFile -Raw).Trim()
+  if (-not [string]::IsNullOrWhiteSpace($pidValue)) {
+    try {
+      $null = Get-Process -Id ([int]$pidValue) -ErrorAction Stop
+      Fail-Program "$Script:AppName is already running with pid $pidValue"
+    } catch [Microsoft.PowerShell.Commands.ProcessCommandException] {
+      Remove-Item -LiteralPath $Script:PidFile -Force -ErrorAction SilentlyContinue
+      return
+    }
+  }
+
+  Remove-Item -LiteralPath $Script:PidFile -Force -ErrorAction SilentlyContinue
 }
 
 function Start-ProgramBackend {
-    if (Test-Path $script:BackendPidFile) {
-        $existingPid = (Get-Content $script:BackendPidFile | Select-Object -First 1).Trim()
-        if ($existingPid) {
-            $existingProcess = Get-Process -Id ([int]$existingPid) -ErrorAction SilentlyContinue
-            if ($existingProcess) { throw 'backend already running' }
-        }
+  param(
+    [switch]$Daemon
+  )
+
+  if ($Daemon) {
+    Clear-StaleProgramPid
+    if (Test-Path -LiteralPath $Script:LogFile) {
+      Clear-Content -LiteralPath $Script:LogFile
+    } else {
+      New-Item -ItemType File -Path $Script:LogFile -Force | Out-Null
     }
 
-    $backend = Start-Process -FilePath $script:BackendBin -PassThru -WindowStyle Hidden -RedirectStandardOutput $script:BackendLog -RedirectStandardError $script:BackendLog
+    $proc = Start-Process -FilePath $Script:BackendBin -WorkingDirectory $Script:BundleRoot -RedirectStandardOutput $Script:LogFile -RedirectStandardError $Script:LogFile -PassThru
+    $proc.Id | Set-Content -LiteralPath $Script:PidFile
     Start-Sleep -Seconds 1
-    if ($backend.HasExited) { throw "backend failed to start; see $script:BackendLog" }
-    Set-Content -Path $script:BackendPidFile -Value $backend.Id
+    if ($proc.HasExited) {
+      Remove-Item -LiteralPath $Script:PidFile -Force -ErrorAction SilentlyContinue
+      Fail-Program "backend failed to start; see $Script:LogFile"
+    }
+    Write-Host "[program-start] started $Script:AppName in daemon mode (pid=$($proc.Id))"
+    Write-Host "[program-start] log file: $Script:LogFile"
+    return
+  }
+
+  & $Script:BackendBin
 }
 
 function Stop-ProgramBackend {
-    if (-not (Test-Path $script:BackendPidFile)) { return }
-    $pidValue = (Get-Content $script:BackendPidFile | Select-Object -First 1).Trim()
-    if ($pidValue) {
-        Stop-Process -Id ([int]$pidValue) -Force -ErrorAction SilentlyContinue
+  if (-not (Test-Path -LiteralPath $Script:PidFile -PathType Leaf)) {
+    Write-Host "[program-stop] pid file not found: $Script:PidFile"
+    return
+  }
+
+  $pidValue = (Get-Content -LiteralPath $Script:PidFile -Raw).Trim()
+  if ([string]::IsNullOrWhiteSpace($pidValue)) {
+    Fail-Program "pid file is empty: $Script:PidFile"
+  }
+
+  try {
+    $proc = Get-Process -Id ([int]$pidValue) -ErrorAction Stop
+  } catch [Microsoft.PowerShell.Commands.ProcessCommandException] {
+    Remove-Item -LiteralPath $Script:PidFile -Force -ErrorAction SilentlyContinue
+    Write-Host "[program-stop] process $pidValue is not running; removed stale pid file"
+    return
+  }
+
+  Stop-Process -Id $proc.Id -ErrorAction Stop
+  for ($i = 0; $i -lt 30; $i++) {
+    Start-Sleep -Seconds 1
+    if ($proc.HasExited) {
+      Remove-Item -LiteralPath $Script:PidFile -Force -ErrorAction SilentlyContinue
+      Write-Host "[program-stop] stopped $Script:AppName (pid=$($proc.Id))"
+      return
     }
-    Remove-Item $script:BackendPidFile -Force -ErrorAction SilentlyContinue
+    $proc.Refresh()
+  }
+
+  Fail-Program "process $($proc.Id) did not stop within 30s"
 }

@@ -3,9 +3,17 @@ $ErrorActionPreference = 'Stop'
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $ScriptDir 'scripts/program-common.ps1')
 
-Set-Location $ScriptDir
-Import-ProgramEnv
-Initialize-ProgramBundle
-Start-ProgramBackend
+$Daemon = $false
+foreach ($arg in $args) {
+  switch ($arg) {
+    '--daemon' { $Daemon = $true }
+    '-Daemon' { $Daemon = $true }
+    default { Fail-Program "unsupported argument: $arg" }
+  }
+}
 
-Write-Host "[program-start] started zenmind-app-server"
+Set-Location $ScriptDir
+Test-ProgramBundle
+Import-ProgramEnv
+Initialize-ProgramRuntime
+Start-ProgramBackend -Daemon:$Daemon
