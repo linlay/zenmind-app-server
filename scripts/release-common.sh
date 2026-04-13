@@ -170,9 +170,8 @@ build_frontend_dist() {
   log "building frontend assets on host..."
   (
     cd "$REPO_ROOT/frontend"
-    npm config set registry "$NPM_REGISTRY" >/dev/null
-    npm ci
-    VITE_BASE_PATH="$VITE_BASE_PATH" npm run build
+    npm_config_registry="$NPM_REGISTRY" npm ci
+    npm_config_registry="$NPM_REGISTRY" VITE_BASE_PATH="$VITE_BASE_PATH" npm run build
   )
   cp -R "$REPO_ROOT/frontend/dist/." "$output_dir/"
 }
@@ -203,12 +202,14 @@ write_program_manifest() {
   local stop_script="stop.sh"
   local deploy_script="deploy.sh"
   local program_common="scripts/program-common.sh"
+  local error_log_json=""
 
   if [[ "$target_os" == "windows" ]]; then
     start_script="start.ps1"
     stop_script="stop.ps1"
     deploy_script="deploy.ps1"
     program_common="scripts/program-common.ps1"
+    error_log_json='    "errorLogRelativePath": "run/zenmind-app-server.stderr.log",'
   fi
 
   cat > "$dest" <<EOF
@@ -253,6 +254,7 @@ write_program_manifest() {
   "runtime": {
     "pidRelativePath": "run/zenmind-app-server.pid",
     "logRelativePath": "run/zenmind-app-server.log",
+${error_log_json}
     "requiredPaths": [
       "$backend_entry",
       "$start_script",

@@ -13,6 +13,7 @@ $Script:DataDir = Join-Path $Script:BundleRoot 'data'
 $Script:RunDir = Join-Path $Script:BundleRoot 'run'
 $Script:PidFile = Join-Path $Script:RunDir 'zenmind-app-server.pid'
 $Script:LogFile = Join-Path $Script:RunDir 'zenmind-app-server.log'
+$Script:ErrorLogFile = Join-Path $Script:RunDir 'zenmind-app-server.stderr.log'
 
 function Fail-Program([string]$Message) {
   throw "[program] $Message"
@@ -102,16 +103,22 @@ function Start-ProgramBackend {
     } else {
       New-Item -ItemType File -Path $Script:LogFile -Force | Out-Null
     }
+    if (Test-Path -LiteralPath $Script:ErrorLogFile) {
+      Clear-Content -LiteralPath $Script:ErrorLogFile
+    } else {
+      New-Item -ItemType File -Path $Script:ErrorLogFile -Force | Out-Null
+    }
 
-    $proc = Start-Process -FilePath $Script:BackendBin -WorkingDirectory $Script:BundleRoot -RedirectStandardOutput $Script:LogFile -RedirectStandardError $Script:LogFile -PassThru
+    $proc = Start-Process -FilePath $Script:BackendBin -WorkingDirectory $Script:BundleRoot -RedirectStandardOutput $Script:LogFile -RedirectStandardError $Script:ErrorLogFile -PassThru
     $proc.Id | Set-Content -LiteralPath $Script:PidFile
     Start-Sleep -Seconds 1
     if ($proc.HasExited) {
       Remove-Item -LiteralPath $Script:PidFile -Force -ErrorAction SilentlyContinue
-      Fail-Program "backend failed to start; see $Script:LogFile"
+      Fail-Program "backend failed to start; see $Script:LogFile and $Script:ErrorLogFile"
     }
     Write-Host "[program-start] started $Script:AppName in daemon mode (pid=$($proc.Id))"
     Write-Host "[program-start] log file: $Script:LogFile"
+    Write-Host "[program-start] stderr file: $Script:ErrorLogFile"
     return
   }
 
