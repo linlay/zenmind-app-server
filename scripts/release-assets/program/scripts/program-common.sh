@@ -14,6 +14,7 @@ DATA_DIR="$BUNDLE_ROOT/data"
 RUN_DIR="$BUNDLE_ROOT/run"
 PID_FILE="$RUN_DIR/$APP_NAME.pid"
 LOG_FILE="$RUN_DIR/$APP_NAME.log"
+ERROR_LOG_FILE="$RUN_DIR/$APP_NAME.stderr.log"
 
 program_die() {
   echo "[program] $*" >&2
@@ -30,10 +31,20 @@ program_require_dir() {
   [[ -d "$path" ]] || program_die "required directory not found: $path"
 }
 
+program_resolve_frontend_dist_dir() {
+  local resolved_dist="${FRONTEND_DIST_DIR:-./frontend/dist}"
+  if [[ "$resolved_dist" != /* ]]; then
+    resolved_dist="$BUNDLE_ROOT/${resolved_dist#./}"
+  fi
+  DIST_DIR="$resolved_dist"
+  export FRONTEND_DIST_DIR
+}
+
 program_validate_bundle() {
   program_require_file "$MANIFEST_FILE"
   program_require_file "$ENV_EXAMPLE_FILE"
   [[ -x "$BACKEND_BIN" ]] || program_die "backend binary is not executable: $BACKEND_BIN"
+  program_resolve_frontend_dist_dir
   program_require_dir "$DIST_DIR"
   program_require_file "$DIST_DIR/index.html"
 }
@@ -46,7 +57,21 @@ program_load_env() {
   set +a
   SERVER_PORT="${SERVER_PORT:-18080}"
   AUTH_DB_PATH="${AUTH_DB_PATH:-./data/auth.db}"
-  export SERVER_PORT AUTH_DB_PATH
+  FRONTEND_DIST_DIR="${FRONTEND_DIST_DIR:-./frontend/dist}"
+  program_resolve_frontend_dist_dir
+  export SERVER_PORT AUTH_DB_PATH FRONTEND_DIST_DIR
+}
+
+program_load_env_optional() {
+  if [[ -f "$ENV_FILE" ]]; then
+    program_load_env
+    return
+  fi
+  SERVER_PORT="${SERVER_PORT:-18080}"
+  AUTH_DB_PATH="${AUTH_DB_PATH:-./data/auth.db}"
+  FRONTEND_DIST_DIR="${FRONTEND_DIST_DIR:-./frontend/dist}"
+  program_resolve_frontend_dist_dir
+  export SERVER_PORT AUTH_DB_PATH FRONTEND_DIST_DIR
 }
 
 program_prepare_runtime_dirs() {
@@ -86,17 +111,19 @@ program_start_backend_daemon() {
 
   program_clear_stale_pid
   : >"$LOG_FILE"
-  nohup "$BACKEND_BIN" >>"$LOG_FILE" 2>&1 &
+  : >"$ERROR_LOG_FILE"
+  nohup "$BACKEND_BIN" >"$LOG_FILE" 2>"$ERROR_LOG_FILE" &
   pid=$!
   printf '%s\n' "$pid" >"$PID_FILE"
   sleep 1
   if ! kill -0 "$pid" >/dev/null 2>&1; then
     rm -f "$PID_FILE"
-    program_die "backend failed to start; see $LOG_FILE"
+    program_die "backend failed to start; see $LOG_FILE and $ERROR_LOG_FILE"
   fi
 
   echo "[program-start] started $APP_NAME in daemon mode (pid=$pid)"
   echo "[program-start] log file: $LOG_FILE"
+  echo "[program-start] stderr file: $ERROR_LOG_FILE"
 }
 
 program_exec_backend() {

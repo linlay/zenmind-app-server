@@ -201,15 +201,13 @@ write_program_manifest() {
   local start_script="start.sh"
   local stop_script="stop.sh"
   local deploy_script="deploy.sh"
-  local program_common="scripts/program-common.sh"
-  local error_log_json=""
+  local program_common_script="scripts/program-common.sh"
 
   if [[ "$target_os" == "windows" ]]; then
     start_script="start.ps1"
     stop_script="stop.ps1"
     deploy_script="deploy.ps1"
-    program_common="scripts/program-common.ps1"
-    error_log_json='    "errorLogRelativePath": "run/zenmind-app-server.stderr.log",'
+    program_common_script="scripts/program-common.ps1"
   fi
 
   cat > "$dest" <<EOF
@@ -226,7 +224,9 @@ write_program_manifest() {
   "frontend": {
     "dist": "frontend/dist",
     "index": "index.html",
-    "spa": true
+    "spa": true,
+    "mode": "standalone",
+    "entry": "/admin/"
   },
   "api": {
     "enabled": true,
@@ -254,13 +254,13 @@ write_program_manifest() {
   "runtime": {
     "pidRelativePath": "run/zenmind-app-server.pid",
     "logRelativePath": "run/zenmind-app-server.log",
-${error_log_json}
+    "errorLogRelativePath": "run/zenmind-app-server.stderr.log",
     "requiredPaths": [
       "$backend_entry",
       "$start_script",
       "$stop_script",
       "$deploy_script",
-      "$program_common",
+      "$program_common_script",
       ".env.example",
       "manifest.json",
       "frontend/dist/index.html"
@@ -272,8 +272,17 @@ ${error_log_json}
     "defaultPort": 11950
   },
   "desktop": {
+    "displayOrder": 4,
+    "autoStart": true,
     "assetFileName": "$asset_file_name",
-    "bundleTopLevelDir": "$APP_NAME"
+    "bundleTopLevelDir": "$APP_NAME",
+    "envBindings": [
+      {
+        "key": "SERVER_PORT",
+        "value": "{{serviceDefaultPort}}",
+        "onlyIfDefault": true
+      }
+    ]
   }
 }
 EOF

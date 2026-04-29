@@ -13,7 +13,7 @@ foreach ($arg in $args) {
 }
 
 Set-Location $ScriptDir
-Test-ProgramBundle
 Import-ProgramEnv
+Test-ProgramBundle
 Initialize-ProgramRuntime
 Start-ProgramBackend -Daemon:$Daemon

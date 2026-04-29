@@ -15,11 +15,26 @@ $Script:PidFile = Join-Path $Script:RunDir 'zenmind-app-server.pid'
 $Script:LogFile = Join-Path $Script:RunDir 'zenmind-app-server.log'
 $Script:ErrorLogFile = Join-Path $Script:RunDir 'zenmind-app-server.stderr.log'
 
+function Resolve-ProgramFrontendDistDir {
+  $frontendDistDir = if ($env:FRONTEND_DIST_DIR) { $env:FRONTEND_DIST_DIR } else { '.\frontend\dist' }
+  if ([System.IO.Path]::IsPathRooted($frontendDistDir)) {
+    $Script:DistDir = $frontendDistDir
+    return
+  }
+
+  $relativeDistDir = $frontendDistDir.TrimStart('.', '\', '/')
+  if ([string]::IsNullOrWhiteSpace($relativeDistDir)) {
+    $relativeDistDir = 'frontend\dist'
+  }
+  $Script:DistDir = Join-Path $Script:BundleRoot $relativeDistDir
+}
+
 function Fail-Program([string]$Message) {
   throw "[program] $Message"
 }
 
 function Test-ProgramBundle {
+  Resolve-ProgramFrontendDistDir
   if (-not (Test-Path -LiteralPath $Script:ManifestFile -PathType Leaf)) {
     Fail-Program "required file not found: $Script:ManifestFile"
   }
@@ -39,7 +54,22 @@ function Test-ProgramBundle {
 }
 
 function Import-ProgramEnv {
+  param([switch]$Optional)
+
   if (-not (Test-Path -LiteralPath $Script:EnvFile -PathType Leaf)) {
+    if ($Optional) {
+      if (-not $env:SERVER_PORT) {
+        $env:SERVER_PORT = '18080'
+      }
+      if (-not $env:AUTH_DB_PATH) {
+        $env:AUTH_DB_PATH = '.\data\auth.db'
+      }
+      if (-not $env:FRONTEND_DIST_DIR) {
+        $env:FRONTEND_DIST_DIR = '.\frontend\dist'
+      }
+      Resolve-ProgramFrontendDistDir
+      return
+    }
     Fail-Program 'missing .env (copy from .env.example first)'
   }
 
@@ -66,6 +96,10 @@ function Import-ProgramEnv {
   if (-not $env:AUTH_DB_PATH) {
     $env:AUTH_DB_PATH = '.\data\auth.db'
   }
+  if (-not $env:FRONTEND_DIST_DIR) {
+    $env:FRONTEND_DIST_DIR = '.\frontend\dist'
+  }
+  Resolve-ProgramFrontendDistDir
 }
 
 function Initialize-ProgramRuntime {

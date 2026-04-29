@@ -12,8 +12,8 @@ main() {
   fi
 
   cd "$SCRIPT_DIR"
-  program_validate_bundle
   program_load_env
+  program_validate_bundle
   program_prepare_runtime_dirs
 
   if [[ "$mode" == "--daemon" ]]; then

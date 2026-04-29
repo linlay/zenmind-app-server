@@ -1,15 +1,34 @@
 package config
 
 import (
+	"os"
 	"testing"
 	"time"
 )
 
 const documentedDevBcrypt = "$2a$10$R9SBw8NUY53nl9mg4L206eM0gFmQFqxSIg5ieLKILAiNbbc2ZSVbu"
 
+func chdirTemp(t *testing.T, dir string) {
+	t.Helper()
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("get working directory: %v", err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("chdir to temp dir: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if err := os.Chdir(cwd); err != nil {
+			t.Fatalf("restore working directory: %v", err)
+		}
+	})
+}
+
 func TestLoadUsesBuiltInDefaults(t *testing.T) {
 	tempDir := t.TempDir()
-	t.Chdir(tempDir)
+	chdirTemp(t, tempDir)
 	t.Setenv("SERVER_PORT", "")
 	t.Setenv("BACKEND_PORT", "")
 	t.Setenv("AUTH_DB_PATH", "")
@@ -60,7 +79,7 @@ func TestLoadUsesBuiltInDefaults(t *testing.T) {
 
 func TestLoadEnvOverridesBuiltInDefaults(t *testing.T) {
 	tempDir := t.TempDir()
-	t.Chdir(tempDir)
+	chdirTemp(t, tempDir)
 	t.Setenv("SERVER_PORT", "28080")
 	t.Setenv("BACKEND_PORT", "")
 	t.Setenv("AUTH_DB_PATH", "/tmp/auth.db")
@@ -105,7 +124,7 @@ func TestLoadEnvOverridesBuiltInDefaults(t *testing.T) {
 
 func TestLoadIgnoresBackendPortForServerPort(t *testing.T) {
 	tempDir := t.TempDir()
-	t.Chdir(tempDir)
+	chdirTemp(t, tempDir)
 	t.Setenv("SERVER_PORT", "")
 	t.Setenv("BACKEND_PORT", "11952")
 	t.Setenv("AUTH_ADMIN_PASSWORD_BCRYPT", documentedDevBcrypt)
@@ -127,7 +146,7 @@ func TestDocumentedDevBcryptPassesValidation(t *testing.T) {
 	}
 
 	tempDir := t.TempDir()
-	t.Chdir(tempDir)
+	chdirTemp(t, tempDir)
 	t.Setenv("AUTH_ADMIN_PASSWORD_BCRYPT", documentedDevBcrypt)
 	t.Setenv("AUTH_APP_MASTER_PASSWORD_BCRYPT", documentedDevBcrypt)
 
