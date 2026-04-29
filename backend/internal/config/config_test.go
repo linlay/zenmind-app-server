@@ -41,7 +41,7 @@ func TestLoadUsesBuiltInDefaults(t *testing.T) {
 	if cfg.AdminUsername != builtInDefaults.AdminUsername || cfg.AppUsername != builtInDefaults.AppUsername {
 		t.Fatalf("unexpected usernames: admin=%s app=%s", cfg.AdminUsername, cfg.AppUsername)
 	}
-	if cfg.AppAccessTTL != 10*time.Minute || cfg.TokenAccessTTL != 15*time.Minute {
+	if cfg.AppAccessTTL != 24*time.Hour || cfg.TokenAccessTTL != 24*time.Hour {
 		t.Fatalf("unexpected access TTLs: app=%s token=%s", cfg.AppAccessTTL, cfg.TokenAccessTTL)
 	}
 	if cfg.AppMaxAccessTTL != 30*24*time.Hour || cfg.TokenRefreshTTL != 30*24*time.Hour {
