@@ -21,8 +21,6 @@ services:
     image: app-server-frontend
     build:
       context: ./frontend
-      args:
-        VITE_BASE_PATH: ${VITE_BASE_PATH:-/admin/}
     container_name: app-server-frontend
     depends_on:
       - app-server-backend
