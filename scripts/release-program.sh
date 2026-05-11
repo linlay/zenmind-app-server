@@ -9,7 +9,6 @@ PROGRAM_ASSETS_DIR="$RELEASE_ASSETS_DIR/program"
 prepare_release_context
 ensure_release_requirements
 require_dir "$PROGRAM_ASSETS_DIR"
-require_file "$PROGRAM_ASSETS_DIR/README.txt"
 require_file "$PROGRAM_ASSETS_DIR/env.example"
 require_dir "$PROGRAM_ASSETS_DIR/scripts"
 
@@ -95,7 +94,6 @@ for pair in "${PROGRAM_TARGET_PAIRS[@]}"; do
   cp -R "$FRONTEND_DIST_DIR/." "$frontend_dir/dist/"
   cp "$PROGRAM_ASSETS_DIR/env.example" "$bundle_root/.env.example"
   write_program_manifest "$bundle_root/manifest.json" "$target_os" "$target_arch" "$backend_entry" "$(program_bundle_filename "$VERSION" "$target_os" "$target_arch" "$archive_format")"
-  cp "$PROGRAM_ASSETS_DIR/README.txt" "$bundle_root/README.txt"
   if [[ "$target_os" == "windows" ]]; then
     cp "$PROGRAM_ASSETS_DIR/deploy.ps1" "$bundle_root/deploy.ps1"
     cp "$PROGRAM_ASSETS_DIR/start.ps1" "$bundle_root/start.ps1"
