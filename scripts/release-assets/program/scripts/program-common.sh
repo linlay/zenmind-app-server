@@ -10,11 +10,12 @@ ENV_FILE="${SERVICE_CONFIG_DIR:-$BUNDLE_ROOT}/.env"
 BACKEND_BIN="$BUNDLE_ROOT/backend/$APP_NAME"
 FRONTEND_DIR="$BUNDLE_ROOT/frontend"
 DIST_DIR="$FRONTEND_DIR/dist"
-DATA_DIR="${ZENMIND_SERVICE_DATA_DIR:-$BUNDLE_ROOT/data}"
-RUN_DIR="$BUNDLE_ROOT/run"
+DATA_DIR="${SERVICE_DATA_DIR:-$BUNDLE_ROOT/data}"
+RUN_DIR="${SERVICE_STATE_DIR:-$BUNDLE_ROOT/run}"
+LOG_DIR="${SERVICE_LOG_DIR:-$RUN_DIR}"
 PID_FILE="$RUN_DIR/$APP_NAME.pid"
-LOG_FILE="$RUN_DIR/$APP_NAME.log"
-ERROR_LOG_FILE="$RUN_DIR/$APP_NAME.stderr.log"
+LOG_FILE="$LOG_DIR/$APP_NAME.log"
+ERROR_LOG_FILE="$LOG_DIR/$APP_NAME.stderr.log"
 
 program_die() {
   echo "[program] $*" >&2
@@ -49,6 +50,13 @@ program_validate_bundle() {
   program_require_file "$DIST_DIR/index.html"
 }
 
+program_initialize_config() {
+  mkdir -p "$(dirname "$ENV_FILE")"
+  if [[ ! -f "$ENV_FILE" ]]; then
+    cp "$ENV_EXAMPLE_FILE" "$ENV_FILE"
+  fi
+}
+
 program_load_env() {
   [[ -f "$ENV_FILE" ]] || program_die "missing .env (copy from .env.example first)"
   set -a
@@ -56,7 +64,7 @@ program_load_env() {
   . "$ENV_FILE"
   set +a
   SERVER_PORT="${SERVER_PORT:-18080}"
-  AUTH_DB_PATH="${AUTH_DB_PATH:-./data/auth.db}"
+  AUTH_DB_PATH="${AUTH_DB_PATH:-$DATA_DIR/auth.db}"
   FRONTEND_DIST_DIR="${FRONTEND_DIST_DIR:-./frontend/dist}"
   program_resolve_frontend_dist_dir
   export SERVER_PORT AUTH_DB_PATH FRONTEND_DIST_DIR
@@ -68,14 +76,14 @@ program_load_env_optional() {
     return
   fi
   SERVER_PORT="${SERVER_PORT:-18080}"
-  AUTH_DB_PATH="${AUTH_DB_PATH:-./data/auth.db}"
+  AUTH_DB_PATH="${AUTH_DB_PATH:-$DATA_DIR/auth.db}"
   FRONTEND_DIST_DIR="${FRONTEND_DIST_DIR:-./frontend/dist}"
   program_resolve_frontend_dist_dir
   export SERVER_PORT AUTH_DB_PATH FRONTEND_DIST_DIR
 }
 
 program_prepare_runtime_dirs() {
-  mkdir -p "$DATA_DIR" "$RUN_DIR"
+  mkdir -p "$DATA_DIR" "$RUN_DIR" "$LOG_DIR"
 }
 
 program_read_pid() {

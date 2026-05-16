@@ -30,6 +30,13 @@ type defaults struct {
 	CleanupCron          string
 }
 
+func defaultDBPath() string {
+	if serviceDataDir := strings.TrimSpace(os.Getenv("SERVICE_DATA_DIR")); serviceDataDir != "" {
+		return filepath.Join(serviceDataDir, "auth.db")
+	}
+	return "../data/auth.db"
+}
+
 var builtInDefaults = defaults{
 	ServerPort:           8080,
 	DBPath:               "../data/auth.db",
@@ -75,7 +82,7 @@ func Load() (*Config, error) {
 	port := envInt("SERVER_PORT", builtInDefaults.ServerPort)
 	cfg := &Config{
 		ServerPort:          port,
-		DBPath:              env("AUTH_DB_PATH", builtInDefaults.DBPath),
+		DBPath:              env("AUTH_DB_PATH", defaultDBPath()),
 		Issuer:              env("AUTH_ISSUER", builtInDefaults.Issuer),
 		FrontendDistDir:     env("FRONTEND_DIST_DIR", ""),
 		AdminUsername:       env("AUTH_ADMIN_USERNAME", builtInDefaults.AdminUsername),

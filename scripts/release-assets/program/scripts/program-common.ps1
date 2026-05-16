@@ -9,11 +9,12 @@ $Script:EnvFile = Join-Path $(if ($env:SERVICE_CONFIG_DIR) { $env:SERVICE_CONFIG
 $Script:BackendBin = Join-Path (Join-Path $Script:BundleRoot 'backend') 'zenmind-app-server.exe'
 $Script:FrontendDir = Join-Path $Script:BundleRoot 'frontend'
 $Script:DistDir = Join-Path $Script:FrontendDir 'dist'
-$Script:DataDir = if ($env:ZENMIND_SERVICE_DATA_DIR) { $env:ZENMIND_SERVICE_DATA_DIR } else { Join-Path $Script:BundleRoot 'data' }
-$Script:RunDir = Join-Path $Script:BundleRoot 'run'
+$Script:DataDir = if ($env:SERVICE_DATA_DIR) { $env:SERVICE_DATA_DIR } else { Join-Path $Script:BundleRoot 'data' }
+$Script:RunDir = if ($env:SERVICE_STATE_DIR) { $env:SERVICE_STATE_DIR } else { Join-Path $Script:BundleRoot 'run' }
+$Script:LogDir = if ($env:SERVICE_LOG_DIR) { $env:SERVICE_LOG_DIR } else { $Script:RunDir }
 $Script:PidFile = Join-Path $Script:RunDir 'zenmind-app-server.pid'
-$Script:LogFile = Join-Path $Script:RunDir 'zenmind-app-server.log'
-$Script:ErrorLogFile = Join-Path $Script:RunDir 'zenmind-app-server.stderr.log'
+$Script:LogFile = Join-Path $Script:LogDir 'zenmind-app-server.log'
+$Script:ErrorLogFile = Join-Path $Script:LogDir 'zenmind-app-server.stderr.log'
 
 function Resolve-ProgramFrontendDistDir {
   $frontendDistDir = if ($env:FRONTEND_DIST_DIR) { $env:FRONTEND_DIST_DIR } else { '.\frontend\dist' }
@@ -27,6 +28,13 @@ function Resolve-ProgramFrontendDistDir {
     $relativeDistDir = 'frontend\dist'
   }
   $Script:DistDir = Join-Path $Script:BundleRoot $relativeDistDir
+}
+
+function Initialize-ProgramConfig {
+  New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Script:EnvFile) | Out-Null
+  if (-not (Test-Path -LiteralPath $Script:EnvFile -PathType Leaf)) {
+    Copy-Item -LiteralPath $Script:EnvExampleFile -Destination $Script:EnvFile
+  }
 }
 
 function Fail-Program([string]$Message) {
@@ -62,7 +70,7 @@ function Import-ProgramEnv {
         $env:SERVER_PORT = '18080'
       }
       if (-not $env:AUTH_DB_PATH) {
-        $env:AUTH_DB_PATH = '.\data\auth.db'
+        $env:AUTH_DB_PATH = Join-Path $Script:DataDir 'auth.db'
       }
       if (-not $env:FRONTEND_DIST_DIR) {
         $env:FRONTEND_DIST_DIR = '.\frontend\dist'
@@ -94,7 +102,7 @@ function Import-ProgramEnv {
     $env:SERVER_PORT = '18080'
   }
   if (-not $env:AUTH_DB_PATH) {
-    $env:AUTH_DB_PATH = '.\data\auth.db'
+    $env:AUTH_DB_PATH = Join-Path $Script:DataDir 'auth.db'
   }
   if (-not $env:FRONTEND_DIST_DIR) {
     $env:FRONTEND_DIST_DIR = '.\frontend\dist'
@@ -103,7 +111,7 @@ function Import-ProgramEnv {
 }
 
 function Initialize-ProgramRuntime {
-  New-Item -ItemType Directory -Force -Path $Script:DataDir, $Script:RunDir | Out-Null
+  New-Item -ItemType Directory -Force -Path $Script:DataDir, $Script:RunDir, $Script:LogDir | Out-Null
 }
 
 function Clear-StaleProgramPid {
