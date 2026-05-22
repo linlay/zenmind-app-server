@@ -1,11 +1,11 @@
-$ErrorActionPreference = 'Stop'
-
 param(
     [string]$Db = '',
     [string]$Issuer = '',
     [string]$Username = '',
     [string]$DeviceName = 'WeChat Bridge'
 )
+
+$ErrorActionPreference = 'Continue'
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RootDir = Split-Path -Parent $ScriptDir

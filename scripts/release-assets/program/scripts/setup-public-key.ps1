@@ -1,5 +1,3 @@
-$ErrorActionPreference = 'Stop'
-
 param(
     [ValidateSet('bootstrap', 'rotate')]
     [string]$Mode = 'bootstrap',
@@ -8,6 +6,8 @@ param(
     [string]$PublicOut = '',
     [string]$KeyId = ''
 )
+
+$ErrorActionPreference = 'Continue'
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RootDir = Split-Path -Parent $ScriptDir
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS JWK_KEY_ (
 
 $tempDir = New-TempDir
 try {
-    $existingRow = (& sqlite3 -noheader $Db "SELECT KEY_ID_ || '|' || PUBLIC_KEY_ || '|' || PRIVATE_KEY_ FROM JWK_KEY_ ORDER BY CREATE_AT_ ASC LIMIT 1;").Trim()
+    $existingRow = "$(& sqlite3 -noheader $Db "SELECT KEY_ID_ || '|' || PUBLIC_KEY_ || '|' || PRIVATE_KEY_ FROM JWK_KEY_ ORDER BY CREATE_AT_ ASC LIMIT 1;")".Trim()
     if ($Mode -eq 'bootstrap' -and $existingRow) {
         $parts = $existingRow.Split('|', 3)
         [System.IO.File]::WriteAllBytes((Join-Path $tempDir 'public.der'), [Convert]::FromBase64String($parts[1]))
