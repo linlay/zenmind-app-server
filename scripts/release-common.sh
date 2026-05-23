@@ -170,7 +170,7 @@ build_frontend_dist() {
   log "building frontend assets on host..."
   (
     cd "$REPO_ROOT/frontend"
-    npm_config_registry="$NPM_REGISTRY" npm ci
+    npm_config_registry="$NPM_REGISTRY" npm install
     npm_config_registry="$NPM_REGISTRY" VITE_BASE_PATH="$VITE_BASE_PATH" npm run build
   )
   cp -R "$REPO_ROOT/frontend/dist/." "$output_dir/"
