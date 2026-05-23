@@ -22,6 +22,12 @@ if ($TtlSeconds -notmatch '^[0-9]+$') {
 }
 $ttlValue = [int64]$TtlSeconds
 
+$BackendBin = Join-Path (Join-Path $RootDir 'backend') 'zenmind-app-server.exe'
+if (Test-Path -LiteralPath $BackendBin -PathType Leaf) {
+    & $BackendBin issue-bridge-runner-token --db $Db --issuer $Issuer --username $Username --device-name $DeviceName --ttl-seconds $TtlSeconds
+    exit $LASTEXITCODE
+}
+
 function Require-Cmd([string]$Name) {
     if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
         throw "missing required command: $Name"

@@ -33,6 +33,10 @@ func NewKeyManager(db *sql.DB) *KeyManager {
 }
 
 func (m *KeyManager) LoadOrCreate() (*jose.JSONWebKey, error) {
+	return m.LoadOrCreateWithKeyID("")
+}
+
+func (m *KeyManager) LoadOrCreateWithKeyID(keyID string) (*jose.JSONWebKey, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.key != nil {
@@ -49,11 +53,29 @@ func (m *KeyManager) LoadOrCreate() (*jose.JSONWebKey, error) {
 		k := *key
 		return &k, nil
 	}
+	return m.createLocked(keyID)
+}
+
+func (m *KeyManager) Rotate(keyID string) (*jose.JSONWebKey, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, err := m.db.Exec(`DELETE FROM JWK_KEY_`); err != nil {
+		return nil, err
+	}
+	m.key = nil
+	m.kid = ""
+	return m.createLocked(keyID)
+}
+
+func (m *KeyManager) createLocked(keyID string) (*jose.JSONWebKey, error) {
 	generated, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, err
 	}
-	kid := uuid.NewString()
+	kid := strings.TrimSpace(keyID)
+	if kid == "" {
+		kid = uuid.NewString()
+	}
 	pubDER, err := x509.MarshalPKIXPublicKey(&generated.PublicKey)
 	if err != nil {
 		return nil, err

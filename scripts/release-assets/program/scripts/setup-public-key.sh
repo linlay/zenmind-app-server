@@ -4,6 +4,10 @@ set -euo pipefail
 SCRIPT_NAME="$(basename "$0")"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+BACKEND_BIN="$ROOT_DIR/backend/zenmind-app-server"
+if [ -x "$BACKEND_BIN" ]; then
+  exec "$BACKEND_BIN" setup-public-key "$@"
+fi
 
 MODE="bootstrap"
 DB_PATH="${AUTH_DB_PATH:-$ROOT_DIR/data/auth.db}"

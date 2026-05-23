@@ -38,6 +38,7 @@ run/                          — 运行期自动创建的 backend pid 与日志
 scripts/setup-public-key.{sh|ps1}           — 导出 JWK 公私钥与 publicKey.pem
 scripts/issue-bridge-access-token.{sh|ps1}  — 生成供 bridge 调用的 app access token
 scripts/issue-bridge-runner-token.{sh|ps1}  — 生成供内部 bridge 调 runner 使用的带 exp app access token
+backend/zenmind-app-server(.exe) <command>  — 直接执行上述辅助能力，不依赖外部 openssl / sqlite3 命令
 
 注意事项
 ========
@@ -46,4 +47,4 @@ scripts/issue-bridge-runner-token.{sh|ps1}  — 生成供内部 bridge 调 runne
 - bundle 不再包含 frontend 进程；`frontend/dist` 由外部宿主 nginx 或等价网关托管。
 - 根目录只携带当前平台入口；Windows bundle 不再附带 `.sh`，macOS / Linux bundle 不再附带 `.ps1`。
 - `data/` 与 `run/` 在首次运行时自动创建，不预置在压缩包里。
-- `scripts/` 下辅助脚本依赖 `openssl` 和 `sqlite3`。
+- `scripts/` 下辅助脚本会优先委托给 backend 二进制；只有 backend 二进制不存在、走旧脚本 fallback 时才依赖系统 `openssl` 和 `sqlite3`。

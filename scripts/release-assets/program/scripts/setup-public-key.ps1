@@ -17,6 +17,14 @@ if (-not $Out) { $Out = if ($env:KEY_OUTPUT_DIR) { $env:KEY_OUTPUT_DIR } else { 
 if (-not $PublicOut) { $PublicOut = Join-Path $Out 'publicKey.pem' }
 if (-not $KeyId) { $KeyId = $env:JWK_KEY_ID }
 
+$BackendBin = Join-Path (Join-Path $RootDir 'backend') 'zenmind-app-server.exe'
+if (Test-Path -LiteralPath $BackendBin -PathType Leaf) {
+    $goArgs = @('setup-public-key', '--mode', $Mode, '--db', $Db, '--out', $Out, '--public-out', $PublicOut)
+    if ($KeyId) { $goArgs += @('--key-id', $KeyId) }
+    & $BackendBin @goArgs
+    exit $LASTEXITCODE
+}
+
 function Write-Log([string]$Message) {
     Write-Host ("[setup-public-key] {0}" -f $Message)
 }

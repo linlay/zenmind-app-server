@@ -16,6 +16,12 @@ if (-not $Db) { $Db = if ($env:AUTH_DB_PATH) { $env:AUTH_DB_PATH } else { Join-P
 if (-not $Issuer) { $Issuer = if ($env:AUTH_ISSUER) { $env:AUTH_ISSUER } else { 'http://localhost:8080' } }
 if (-not $Username) { $Username = if ($env:AUTH_APP_USERNAME) { $env:AUTH_APP_USERNAME } else { 'app' } }
 
+$BackendBin = Join-Path (Join-Path $RootDir 'backend') 'zenmind-app-server.exe'
+if (Test-Path -LiteralPath $BackendBin -PathType Leaf) {
+    & $BackendBin issue-bridge-access-token --db $Db --issuer $Issuer --username $Username --device-name $DeviceName
+    exit $LASTEXITCODE
+}
+
 function Require-Cmd([string]$Name) {
     if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
         throw "missing required command: $Name"

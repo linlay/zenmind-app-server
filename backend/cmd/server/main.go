@@ -13,11 +13,20 @@ import (
 	"zenmind-app-server/backend/internal/app"
 	"zenmind-app-server/backend/internal/config"
 	"zenmind-app-server/backend/internal/db"
+	"zenmind-app-server/backend/internal/programcli"
 	"zenmind-app-server/backend/internal/security"
 	"zenmind-app-server/backend/internal/store"
 )
 
 func main() {
+	if handled, err := programcli.Run(os.Args[1:], os.Stdout, os.Stderr); handled {
+		if err != nil {
+			_, _ = os.Stderr.WriteString(err.Error() + "\n")
+			os.Exit(1)
+		}
+		return
+	}
+
 	logger := log.New(os.Stdout, "[backend] ", log.LstdFlags|log.Lmicroseconds)
 	cfg, err := config.Load()
 	if err != nil {
