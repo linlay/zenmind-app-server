@@ -1,6 +1,7 @@
 services:
   app-server-backend:
     image: app-server-backend
+    restart: unless-stopped
     build:
       context: ./backend
     container_name: app-server-backend
@@ -19,6 +20,7 @@ services:
 
   app-server-frontend:
     image: app-server-frontend
+    restart: unless-stopped
     build:
       context: ./frontend
     container_name: app-server-frontend
