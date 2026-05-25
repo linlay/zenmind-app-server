@@ -34,9 +34,6 @@ require_program_assets_for_os() {
       require_file "$PROGRAM_ASSETS_DIR/scripts/setup-public-key.ps1"
       require_file "$PROGRAM_ASSETS_DIR/scripts/issue-bridge-access-token.ps1"
       require_file "$PROGRAM_ASSETS_DIR/scripts/issue-bridge-runner-token.ps1"
-      require_file "$PROGRAM_ASSETS_DIR/scripts/crypto-helpers.ps1"
-      require_file "$PROGRAM_ASSETS_DIR/scripts/sqlite-helpers.ps1"
-      require_file "$PROGRAM_ASSETS_DIR/scripts/lib/System.Data.SQLite.dll"
       ;;
     *)
       require_file "$PROGRAM_ASSETS_DIR/deploy.sh"
@@ -105,9 +102,6 @@ for pair in "${PROGRAM_TARGET_PAIRS[@]}"; do
     cp "$PROGRAM_ASSETS_DIR/scripts/setup-public-key.ps1" "$scripts_dir/setup-public-key.ps1"
     cp "$PROGRAM_ASSETS_DIR/scripts/issue-bridge-access-token.ps1" "$scripts_dir/issue-bridge-access-token.ps1"
     cp "$PROGRAM_ASSETS_DIR/scripts/issue-bridge-runner-token.ps1" "$scripts_dir/issue-bridge-runner-token.ps1"
-    cp "$PROGRAM_ASSETS_DIR/scripts/crypto-helpers.ps1" "$scripts_dir/crypto-helpers.ps1"
-    cp "$PROGRAM_ASSETS_DIR/scripts/sqlite-helpers.ps1" "$scripts_dir/sqlite-helpers.ps1"
-    cp -R "$PROGRAM_ASSETS_DIR/scripts/lib" "$scripts_dir/"
   else
     cp "$PROGRAM_ASSETS_DIR/deploy.sh" "$bundle_root/deploy.sh"
     cp "$PROGRAM_ASSETS_DIR/start.sh" "$bundle_root/start.sh"
