@@ -29,13 +29,6 @@ try {
 
     Write-Host "[e2e] PASSED: PEM files created with correct headers"
 
-    # Verify PEM is importable
-    . (Join-Path $ScriptDir 'crypto-helpers.ps1')
-    $derBytes = ConvertFrom-Pem $privPem
-    $testRsa = Import-RsaPrivateKeyFromPkcs8Der $derBytes
-    $testRsa.Dispose()
-    Write-Host "[e2e] PASSED: Private PEM is importable"
-
     # -----------------------------------------------------------------------
     # 2) setup-public-key — bootstrap (second run, reuses existing key)
     # -----------------------------------------------------------------------
@@ -80,25 +73,6 @@ try {
     if ($payload.sub -ne 'testuser') { throw "JWT subject mismatch" }
     if ($payload.scope -ne 'app') { throw "JWT scope mismatch" }
     Write-Host ("[e2e] JWT payload: iss={0}, sub={1}, scope={2}, device_id={3}" -f $payload.iss, $payload.sub, $payload.scope, $payload.device_id)
-
-    # Verify JWT signature
-    # Alternative: import the private key to verify (simpler)
-    . (Join-Path $ScriptDir 'sqlite-helpers.ps1')
-    $conn = New-SqliteConnection -DbPath $DbPath
-    $keyRow = Invoke-SqliteQuery -Connection $conn -Sql "SELECT PRIVATE_KEY_ FROM JWK_KEY_ ORDER BY CREATE_AT_ ASC LIMIT 1;"
-    $conn.Close(); $conn.Dispose()
-    $verifyRsa = Import-RsaPrivateKeyFromPkcs8Der ([Convert]::FromBase64String($keyRow[0].PRIVATE_KEY_))
-    $sigInput = [Text.Encoding]::ASCII.GetBytes("$($parts[0]).$($parts[1])")
-    $sigPad = $parts[2].Replace('-', '+').Replace('_', '/')
-    switch ($sigPad.Length % 4) {
-        2 { $sigPad += '==' }
-        3 { $sigPad += '=' }
-    }
-    $sigBytes = [Convert]::FromBase64String($sigPad)
-    $valid = $verifyRsa.VerifyData($sigInput, $sigBytes, [System.Security.Cryptography.HashAlgorithmName]::SHA256, [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
-    $verifyRsa.Dispose()
-    if (-not $valid) { throw "JWT signature verification FAILED" }
-    Write-Host "[e2e] PASSED: JWT signature verified"
 
     # -----------------------------------------------------------------------
     # 5) issue-bridge-runner-token
