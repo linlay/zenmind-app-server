@@ -40,6 +40,13 @@ scripts/issue-bridge-access-token.{sh|ps1}  — 生成供 bridge 调用的 app a
 scripts/issue-bridge-runner-token.{sh|ps1}  — 生成供内部 bridge 调 runner 使用的带 exp app access token
 backend/zenmind-app-server(.exe) <command>  — 直接执行上述辅助能力，不依赖外部 openssl / sqlite3 命令
 
+bridge token 设备标识
+====================
+
+- `issue-bridge-access-token` 与 `issue-bridge-runner-token` 支持 `--device-id <uuid>` / PowerShell `-DeviceId <uuid>`。
+- 未显式传参时会读取环境变量 `DESKTOP_DEVICE_ID`；两者都不存在时，服务按原逻辑自生成或复用设备记录。
+- 返回 JWT 的 `device_id` 与传入的 Desktop 安装级 UUID 保持一致。
+
 注意事项
 ========
 

@@ -407,6 +407,31 @@ func (s *Store) EnsureActiveDeviceWithHash(name, tokenHash string) (*Device, err
 	return s.FindDeviceByID(id)
 }
 
+func (s *Store) EnsureActiveDeviceWithID(deviceID, name, tokenHash string) (*Device, error) {
+	deviceID = strings.TrimSpace(deviceID)
+	deviceName := normalizeDeviceName(name)
+	device, err := s.FindDeviceByID(deviceID)
+	if err == nil {
+		if device.Status != "ACTIVE" {
+			return nil, fmt.Errorf("device %s is not active", deviceID)
+		}
+		now := time.Now().UTC()
+		if _, touchErr := s.db.Exec(`UPDATE DEVICE_ SET LAST_SEEN_AT_ = ?, UPDATE_AT_ = ? WHERE DEVICE_ID_ = ? AND STATUS_ = 'ACTIVE'`, now, now, device.DeviceID); touchErr != nil {
+			return nil, touchErr
+		}
+		return s.FindDeviceByID(device.DeviceID)
+	}
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+	now := time.Now().UTC()
+	_, err = s.db.Exec(`INSERT INTO DEVICE_(DEVICE_ID_, DEVICE_NAME_, DEVICE_TOKEN_BCRYPT_, STATUS_, LAST_SEEN_AT_, REVOKED_AT_, CREATE_AT_, UPDATE_AT_) VALUES(?, ?, ?, 'ACTIVE', ?, NULL, ?, ?)`, deviceID, deviceName, tokenHash, now, now, now)
+	if err != nil {
+		return nil, err
+	}
+	return s.FindDeviceByID(deviceID)
+}
+
 func normalizeDeviceName(name string) string {
 	deviceName := strings.TrimSpace(name)
 	if deviceName == "" {

@@ -200,6 +200,7 @@ Windows 示例：
 - 后端数据库路径默认是 `./data/auth.db`
 - 数据库 schema 已内嵌在后端二进制中，不依赖外置 `schema.sql`
 - 后端二进制提供 `setup-public-key`、`issue-bridge-access-token`、`issue-bridge-runner-token` 子命令，可直接生成 JWK PEM 文件和 bridge token，不依赖外部 `openssl` / `sqlite3` 命令
+- `issue-bridge-access-token` 和 `issue-bridge-runner-token` 支持 `--device-id <uuid>`（PowerShell wrapper 为 `-DeviceId <uuid>`），未传参时读取 `DESKTOP_DEVICE_ID`，仍为空时按服务原逻辑自生成或复用设备记录
 
 运行期目录：
 

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 
 	"zenmind-app-server/backend/internal/db"
@@ -27,6 +28,7 @@ type options struct {
 	keyID      string
 	issuer     string
 	username   string
+	deviceID   string
 	deviceName string
 	ttlSeconds int64
 }
@@ -113,6 +115,7 @@ func runIssueBridgeAccessToken(args []string, stdout, stderr io.Writer, runner b
 	bindString(fs, &opts.issuer, "issuer", "Issuer", opts.issuer, "JWT issuer")
 	bindString(fs, &opts.username, "username", "Username", opts.username, "JWT subject")
 	bindString(fs, &opts.deviceName, "device-name", "DeviceName", opts.deviceName, "device name")
+	bindString(fs, &opts.deviceID, "device-id", "DeviceId", opts.deviceID, "desktop installation device id")
 	if runner {
 		bindInt64(fs, &opts.ttlSeconds, "ttl-seconds", "TtlSeconds", opts.ttlSeconds, "token TTL in seconds")
 	}
@@ -135,7 +138,7 @@ func runIssueBridgeAccessToken(args []string, stdout, stderr io.Writer, runner b
 		return err
 	}
 	st := store.New(conn)
-	device, err := st.EnsureActiveDeviceWithHash(opts.deviceName, placeholderDeviceTokenBcrypt)
+	device, err := ensureBridgeDevice(st, opts)
 	if err != nil {
 		return err
 	}
@@ -165,6 +168,17 @@ func runIssueBridgeAccessToken(args []string, stdout, stderr io.Writer, runner b
 	}
 	fmt.Fprintln(stdout, token)
 	return nil
+}
+
+func ensureBridgeDevice(st *store.Store, opts options) (*store.Device, error) {
+	deviceID := strings.TrimSpace(opts.deviceID)
+	if deviceID == "" {
+		return st.EnsureActiveDeviceWithHash(opts.deviceName, placeholderDeviceTokenBcrypt)
+	}
+	if _, err := uuid.Parse(deviceID); err != nil {
+		return nil, fmt.Errorf("invalid device-id: %s", deviceID)
+	}
+	return st.EnsureActiveDeviceWithID(deviceID, opts.deviceName, placeholderDeviceTokenBcrypt)
 }
 
 func openKeys(dbPath string) (*sql.DB, *security.KeyManager, error) {
@@ -216,6 +230,7 @@ func defaultOptions() options {
 		keyID:      env("JWK_KEY_ID", ""),
 		issuer:     env("AUTH_ISSUER", "http://localhost:8080"),
 		username:   env("AUTH_APP_USERNAME", "app"),
+		deviceID:   env("DESKTOP_DEVICE_ID", ""),
 		deviceName: "WeChat Bridge",
 		ttlSeconds: 31536000,
 	}

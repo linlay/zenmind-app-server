@@ -25,6 +25,13 @@ README.txt                    — 本文件
 data/                         — 运行时数据目录
 images/                       — Docker 镜像压缩包
 
+bridge token 设备标识
+====================
+
+- `issue-bridge-access-token.sh` 与 `issue-bridge-runner-token.sh` 支持 `--device-id <uuid>`。
+- 未显式传参时会读取环境变量 `DESKTOP_DEVICE_ID`；两者都不存在时，服务按原逻辑自生成或复用设备记录。
+- 返回 JWT 的 `device_id` 与传入的 Desktop 安装级 UUID 保持一致。
+
 注意事项
 ========
 

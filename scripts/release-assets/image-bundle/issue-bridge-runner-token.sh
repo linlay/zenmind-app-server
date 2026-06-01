@@ -7,13 +7,14 @@ DB_PATH="${AUTH_DB_PATH:-./data/auth.db}"
 ISSUER="${AUTH_ISSUER:-http://localhost:8080}"
 USERNAME="${AUTH_APP_USERNAME:-app}"
 DEVICE_NAME="WeChat Bridge"
+REQUESTED_DEVICE_ID="${DESKTOP_DEVICE_ID:-}"
 TTL_SECONDS="${BRIDGE_RUNNER_TOKEN_TTL_SECONDS:-315360000}"
 PLACEHOLDER_DEVICE_TOKEN_BCRYPT='$2a$10$7J8GmW8J0tR9o5Z8L4m5Uuu6fQW4j6mJjM7qY0Q8n2rM5b3y1fVwK'
 
 usage() {
   cat <<EOF
 Usage:
-  ./$SCRIPT_NAME [--db <sqlite_db_path>] [--issuer <issuer>] [--username <subject>] [--device-name <bridge_device_name>] [--ttl-seconds <seconds>]
+  ./$SCRIPT_NAME [--db <sqlite_db_path>] [--issuer <issuer>] [--username <subject>] [--device-name <bridge_device_name>] [--device-id <desktop_device_id>] [--ttl-seconds <seconds>]
 EOF
 }
 
@@ -66,6 +67,7 @@ while [ $# -gt 0 ]; do
     --issuer) ISSUER="${2:-}"; shift 2 ;;
     --username) USERNAME="${2:-}"; shift 2 ;;
     --device-name) DEVICE_NAME="${2:-}"; shift 2 ;;
+    --device-id) REQUESTED_DEVICE_ID="${2:-}"; shift 2 ;;
     --ttl-seconds) TTL_SECONDS="${2:-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) log "unknown argument: $1"; usage >&2; exit 1 ;;
@@ -76,7 +78,13 @@ DB_PATH="$(trim "$DB_PATH")"
 ISSUER="$(trim "$ISSUER")"
 USERNAME="$(trim "$USERNAME")"
 DEVICE_NAME="$(trim "$DEVICE_NAME")"
+REQUESTED_DEVICE_ID="$(trim "$REQUESTED_DEVICE_ID")"
 TTL_SECONDS="$(trim "$TTL_SECONDS")"
+
+if [ -n "$REQUESTED_DEVICE_ID" ] && [[ ! "$REQUESTED_DEVICE_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$ ]]; then
+  log "invalid device-id: $REQUESTED_DEVICE_ID"
+  exit 1
+fi
 
 case "$TTL_SECONDS" in
   ''|*[!0-9]*) log "ttl-seconds must be a positive integer"; exit 1 ;;
@@ -133,10 +141,26 @@ IFS='|' read -r KEY_ID PRIVATE_KEY_B64 <<EOF
 $key_row
 EOF
 
-escaped_device_name="$(printf "%s" "$DEVICE_NAME" | sed "s/'/''/g")"
-device_row="$(sqlite3 -separator '|' -noheader "$DB_PATH" "SELECT DEVICE_ID_ FROM DEVICE_ WHERE STATUS_ = 'ACTIVE' AND DEVICE_NAME_ = '$escaped_device_name' ORDER BY UPDATE_AT_ DESC LIMIT 1;")"
 now_sql="$(date -u '+%Y-%m-%d %H:%M:%S')"
-if [ -n "$device_row" ]; then
+escaped_device_name="$(printf "%s" "$DEVICE_NAME" | sed "s/'/''/g")"
+if [ -n "$REQUESTED_DEVICE_ID" ]; then
+  escaped_requested_device_id="$(printf "%s" "$REQUESTED_DEVICE_ID" | sed "s/'/''/g")"
+  device_row="$(sqlite3 -separator '|' -noheader "$DB_PATH" "SELECT DEVICE_ID_, DEVICE_NAME_, STATUS_ FROM DEVICE_ WHERE DEVICE_ID_ = '$escaped_requested_device_id' LIMIT 1;")"
+  if [ -n "$device_row" ]; then
+    IFS='|' read -r DEVICE_ID DEVICE_NAME DEVICE_STATUS <<EOF
+$device_row
+EOF
+    if [ "$DEVICE_STATUS" != "ACTIVE" ]; then
+      log "device $REQUESTED_DEVICE_ID is not active"
+      exit 1
+    fi
+    escaped_device_name="$(printf "%s" "$DEVICE_NAME" | sed "s/'/''/g")"
+  else
+    DEVICE_ID="$REQUESTED_DEVICE_ID"
+    escaped_placeholder="$(printf "%s" "$PLACEHOLDER_DEVICE_TOKEN_BCRYPT" | sed "s/'/''/g")"
+    sqlite3 "$DB_PATH" "INSERT INTO DEVICE_(DEVICE_ID_, DEVICE_NAME_, DEVICE_TOKEN_BCRYPT_, STATUS_, LAST_SEEN_AT_, REVOKED_AT_, CREATE_AT_, UPDATE_AT_) VALUES('$escaped_requested_device_id', '$escaped_device_name', '$escaped_placeholder', 'ACTIVE', '$now_sql', NULL, '$now_sql', '$now_sql');" >/dev/null
+  fi
+elif device_row="$(sqlite3 -separator '|' -noheader "$DB_PATH" "SELECT DEVICE_ID_ FROM DEVICE_ WHERE STATUS_ = 'ACTIVE' AND DEVICE_NAME_ = '$escaped_device_name' ORDER BY UPDATE_AT_ DESC LIMIT 1;")" && [ -n "$device_row" ]; then
   DEVICE_ID="$device_row"
   sqlite3 "$DB_PATH" "UPDATE DEVICE_ SET LAST_SEEN_AT_ = '$now_sql', UPDATE_AT_ = '$now_sql' WHERE DEVICE_ID_ = '$DEVICE_ID' AND STATUS_ = 'ACTIVE';" >/dev/null
 else
@@ -144,6 +168,7 @@ else
   escaped_placeholder="$(printf "%s" "$PLACEHOLDER_DEVICE_TOKEN_BCRYPT" | sed "s/'/''/g")"
   sqlite3 "$DB_PATH" "INSERT INTO DEVICE_(DEVICE_ID_, DEVICE_NAME_, DEVICE_TOKEN_BCRYPT_, STATUS_, LAST_SEEN_AT_, REVOKED_AT_, CREATE_AT_, UPDATE_AT_) VALUES('$DEVICE_ID', '$escaped_device_name', '$escaped_placeholder', 'ACTIVE', '$now_sql', NULL, '$now_sql', '$now_sql');" >/dev/null
 fi
+sqlite3 "$DB_PATH" "UPDATE DEVICE_ SET LAST_SEEN_AT_ = '$now_sql', UPDATE_AT_ = '$now_sql' WHERE DEVICE_ID_ = '$DEVICE_ID' AND STATUS_ = 'ACTIVE';" >/dev/null
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
