@@ -171,7 +171,8 @@ build_frontend_dist() {
   (
     cd "$REPO_ROOT/frontend"
     npm_config_registry="$NPM_REGISTRY" npm install
-    npm_config_registry="$NPM_REGISTRY" VITE_BASE_PATH="$VITE_BASE_PATH" npm run build
+    # Git Bash/MSYS converts /admin/ into C:/Program Files/Git/admin/ for native npm unless disabled.
+    MSYS_NO_PATHCONV=1 MSYS2_ENV_CONV_EXCL="${MSYS2_ENV_CONV_EXCL:+$MSYS2_ENV_CONV_EXCL;}VITE_BASE_PATH" npm_config_registry="$NPM_REGISTRY" VITE_BASE_PATH="$VITE_BASE_PATH" npm run build
   )
   cp -R "$REPO_ROOT/frontend/dist/." "$output_dir/"
 }
